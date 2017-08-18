@@ -1,0 +1,19 @@
+exportClasses(trenaViz)
+
+exportMethods (
+   ping,
+   getSelection
+   )
+
+export(
+   trenaViz
+   )
+
+importClassesFrom(methods, character, integer)
+importFrom(methods, new)
+
+import(BrowserViz)
+import(BiocGenerics)
+import(httpuv)
+import(jsonlite)
+import(Rcpp)

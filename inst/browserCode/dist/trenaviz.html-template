@@ -1,0 +1,15 @@
+<html>
+<head>
+   <meta charset="utf-8">
+<script>
+m4_include(bundle.js)
+</script>
+</head>
+<body role="document">
+
+  <div id="trenaVizDiv">
+   </div>
+
+</body>
+</html>
+

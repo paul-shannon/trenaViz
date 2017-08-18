@@ -1,0 +1,21 @@
+.center {
+   margin-left: auto;
+   margin-right: auto;
+   width: 70%;
+   background-color: #b0e0e6;
+   }
+
+#trenaVizDiv {
+  background-color: #F0F0F0;
+  position: relative;
+  height: 400px;
+  width: 600px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  margin-right: auto;
+  margin-left: auto;
+  margin-top: 20px;
+  margin-bottom: auto;
+  padding: 0px;
+  }
+

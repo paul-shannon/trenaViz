@@ -31,3 +31,14 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+
+# archive only recipes and source filesfor javascript, no node_modules, no built files
+node_modules/
+.DS_Store
+*.eot
+*.woff2
+*.woff
+*.ttf
+*.svg
+bundle.js

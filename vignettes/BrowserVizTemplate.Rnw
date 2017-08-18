@@ -1,0 +1,154 @@
+%\VignetteIndexEntry{BrowserVizDemo}
+%\VignettePackage{BrowserVizDemo}
+%\VignetteEngine{utils::Sweave}
+
+\documentclass{article}
+
+<<style, eval=TRUE, echo=FALSE, results=tex>>=
+BiocStyle::latex()
+@ 
+
+\newcommand{\exitem}[3]{\item \texttt{\textbackslash#1\{#2\}} #3 \csname#1\endcsname{#2}.}
+\title{BrowserVizDemo}
+\author{Paul Shannon}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+\Biocpkg{BrowserVizDemo} implements an (initially \emph{very} simple, minimally-featured) interactive R-to-web-browser 
+x-y plotting capability.  It is a direct subclass of \Biocpkg{BrowserViz} and therefore uses its simple four-field
+JSON messages transported over websockets (see below).  It thus illustrates the benefits of creating visualization tools
+in a web browser connected interactively to an R session.  Powerful interactive graphics libraries are currently, and 
+increasingly, available for HTML5 browsers running Javascript; \emph{d3} and \emph{cytoscape.js} are two 
+examples.
+
+\Biocpkg{BrowserVizDemo} thus serves two purposes:
+
+\begin{itemize}
+   \item It demonstrates the few simple steps required to create an interactive R/browser application
+         by subclassing the \Rpackage{BrowserViz} package.
+
+   \item It could be extended into a full,  web-based replacement for the base \emph{R} \Rfunction{plot} function, 
+     and perhaps inspire the creation of, or porting of, other popular R visualization tools to web brower graphics.
+\end{itemize}
+
+
+Please see the vignette for the Bioconductor package \Biocpkg{BrowserViz} for a discussion of the underlying
+architecture, techniques and the message format used to communicate between R and the browser.
+
+Note that extending \Biocpkg{BrowserVizDemo} to include more capabilities, or to create other packages derived
+from \Biocpkg{BrowserViz}, requires two sets of programming skills:
+\begin{itemize}
+   \item A solid understanding of R.
+   \item Good knowledge of Javascript, jQuery, and, quite probably, of d3.
+\end{itemize}
+
+For those having these skills, or willing to acquire them, is
+virutally no limit to the rich, interactive, graphical exploratory
+data analyses tools that can be created, in which the graphical
+richness is matched by all of the interactive power of the R
+programming language.
+
+\section{Technical Overview}
+
+(Please see the vignette for \Biocpkg{BrowserViz} for a more comprehensive treatment of this topic.)
+
+Just as the ubiquitous and language-neutral \emph{websockets} protocol provides the
+\Biocpkg{BrowserVizDemo} communication mechanism, so does \emph{JSON} provide the message notation.
+Native data types in R (a named list) and Javascript (an object, with key:value pairs) are
+easily converted to and from JSON by libraries standard in each language.  We have adopted
+a simple, adaptable data structure flexible enough for all of the uses so far encountered.  In
+JSON (and Javascript):
+
+\begin{verbatim}
+    {{cmd: "setWindowTitle", status: "request", callback:"handleResponse", 
+      payload: "BrowserVizDemo Demo"}}
+\end{verbatim}
+
+Websocket servers both send and receive messages.  Thus a typical \Biocpkg{BrowserVizDemo} event begins
+with sending a message from one environment to the other, and often concludes with some sort of a return or
+``callback'' message.
+
+\begin{itemize}
+   \item \emph{cmd}: the name of the operation the sender wishes to be performed by the receiver.
+   \item \emph{status}: might be ``success'', ``failure'', ``error'', ``deferred response''.
+   \item \emph{callback}: provided by the sender, this specifies the operation which the receiver is 
+     to call \emph{in the client} after it (the receiver) completes the operation it was asked to perform.
+   \item \emph{payload} An open-ended data structure, sometimes empty, as simple as a character string, as complex
+              as any conceivable deeply nested list.  
+              
+\end{itemize}
+
+
+\section{The BrowserVizDemo Application}
+
+The \Biocpkg{BrowserVizDemo} package adds only two methods to those provided by its base class:
+
+\begin{itemize}
+   \item \emph{plot}: takes an x and y vector as arguments
+   \item \emph{getSelection}:  returns the names of all d3 selected points, in the browser plot, to R.
+     d3 points are selected by dragging the mouse; the selected region is indicated by a red-bordered
+     box.
+\end{itemize}
+
+These methods are inherited from \Biocpkg{BrowserViz}:
+
+\begin{itemize}
+   \item \emph{port}
+   \item \emph{ready}
+   \item \emph{browserResponseReady}
+   \item \emph{getBrowserResponse}
+   \item \emph{closeWebSocket}
+   \item \emph{send}
+   \item \emph{getBrowserWindowSize}
+   \item \emph{getBrowserWindowTitle}
+   \item \emph{setBrowserWindowTitle}
+\end{itemize}
+
+S4 class inheritance thus proves very powerful.  \Biocpkg{BrowserViz} has almost 400 lines of R code;
+\Biocpkg{BrowserVizDemo} has few than 60.  In addition to the utility methods listed above, the base
+class provides code which greatly simplifies the \emph{plumbing} needed to connect R and the browser:
+web socket setup, port choice, send and receive, JSON transformations, send-message/receive-response
+latencies, specifying functions to be called when incoming messages arrive.  This ensures that the R 
+programming of any derived class is as simple as possible.
+
+We provide a similar benefit for the Javascript, though neither proper classes nor inheritance 
+come native with the language.  Instead \Biocpkg{BrowserViz} includes, and we elsewhere host, 
+\emph{BrowserViz.js} a module of about 300 lines, which exposes about fifteen utility functions.  These,
+like their counterparts in the BrowserViz S4 class, provide socket initialization, functiond dispatch, 
+management of functions to call when the HTML DOM is ready, and when the socket connection has been
+opened and is ready for use.   
+
+We recommend that the HTML/Javascript/CSS portion of every BrowserViz subclass include this file in its
+header.  The capabilities it provides are then available:
+
+\begin{verbatim}
+  hub = BrowserViz();   
+  demo = BrowserVizDemo();
+  demo.setHub(hub)
+  demo.addMessageHandlers()
+  hub.addOnDocumentReadyFunction(demo.initializeUI);
+    // configure and open socket, run queued functions, enable
+    // dispatch of incoming commands their Javascript handler functions
+  hub.start();
+\end{verbatim}
+
+
+<<plotDemo>>=
+library(BrowserVizDemo)
+plotter <- BrowserVizDemo(port=8000:8100);  # plenty of ports to choose from
+stopifnot(ready(plotter))
+title <- "simple xy plot test";
+setBrowserWindowTitle(plotter, title)
+plot(plotter, 1:10, (1:10)^2)
+selectedPoints <- getSelection(plotter)
+  # selectedPoints will be an empty list -unless- you have selected some in the browser with your mouse.
+closeWebSocket(plotter)
+@ 
+
+\end{document}
