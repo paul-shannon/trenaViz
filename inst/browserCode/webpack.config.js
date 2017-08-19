@@ -3,12 +3,6 @@ const webpack = require('webpack'); //to access built-in plugins
 
 module.exports = {
   entry: './src/trenaviz.js',
-  plugins: [
-    new webpack.ProvidePlugin({
-      $: "jquery",
-      jQuery: "jquery",
-      _: "underscore"
-      })],
   module: {
     rules:[{
        test: /\.css$/,
