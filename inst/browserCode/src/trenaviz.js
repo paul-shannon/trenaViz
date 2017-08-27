@@ -1,4 +1,5 @@
 "use strict";
+var cytoscape = require('cytoscape');
 import css from './css/trenaviz.css';
 
 //----------------------------------------------------------------------------------------------------
@@ -7,7 +8,6 @@ var TrenaViz = (function(){
    var hub;                     // defined in BrowserViz.js, has lots of helpful socket
                                 // and message support
    var bvDemo;                  // this simple webapp
-   var igvBrowser = null;
 
 //----------------------------------------------------------------------------------------------------
 function setHub(newHub)
@@ -82,6 +82,7 @@ function setGenome(msg)
 
    setTimeout(function(){this.igvBrowser = initializeIGV(genomeName);}, 0);
    hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
 
 } // setGenome
 //----------------------------------------------------------------------------------------------------
@@ -166,22 +167,25 @@ function initializeIGV(genomeName)
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize,
+    cyjs: cytoscape,
+    igvBrowser: igv  // global variable defined by igv.js?
     });
 
 }); // TrenaViz
 //--------------------------------------------------------------------------------
 var hub = require("browservizjs")
-var bvDemo = TrenaViz();
-window.bvd = bvDemo;
+var tv = TrenaViz();
+window.tv = tv;
 
-bvDemo.setHub(hub)
+tv.setHub(hub)
 hub.init();
 
-bvDemo.addMessageHandlers()
+tv.addMessageHandlers()
 
-var bound_initializeUI = bvDemo.initializeUI.bind(bvDemo);
+var bound_initializeUI = tv.initializeUI.bind(tv);
 hub.addOnDocumentReadyFunction(bound_initializeUI);
 
 hub.start();
+debugger;
 
 //--------------------------------------------------------------------------------

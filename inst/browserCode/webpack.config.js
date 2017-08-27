@@ -3,6 +3,10 @@ const webpack = require('webpack'); //to access built-in plugins
 
 module.exports = {
   entry: './src/trenaviz.js',
+  plugins: [
+    new webpack.ProvidePlugin({
+      cytoscape: "cytoscape"
+      })],
   module: {
     rules:[{
        test: /\.css$/,

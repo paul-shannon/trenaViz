@@ -1,7 +1,7 @@
 build: webpack assemble buildPackage installPackage
 
 assemble:
-	(cd ./dist; m4 -P trenaviz.html-template > trenaviz.html)
+	(cd ./dist; m4 -P trenaviz.html-template | sed s/\`//g > trenaviz.html)
 	ls -l ./dist/trenaviz.html
 
 buildPackage:
