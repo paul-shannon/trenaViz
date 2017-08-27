@@ -2,7 +2,8 @@ exportClasses(trenaViz)
 
 exportMethods (
    ping,
-   getSelection
+   getSelection,
+   setGenome
    )
 
 export(

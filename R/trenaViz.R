@@ -12,6 +12,7 @@ trenaVizBrowserFile <- system.file(package="trenaViz", "browserCode", "dist", "t
 #----------------------------------------------------------------------------------------------------
 setGeneric ('ping',  signature='obj', function (obj) standardGeneric ('ping'))
 setGeneric ('getSelection',  signature='obj', function (obj) standardGeneric ('getSelection'))
+setGeneric ('setGenome', signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
 #----------------------------------------------------------------------------------------------------
 setupMessageHandlers <- function()
 {
@@ -43,5 +44,19 @@ setMethod('ping', 'trenaViz',
         }
      getBrowserResponse(obj)
      }) # ping
+
+#----------------------------------------------------------------------------------------------------
+setMethod('setGenome', 'trenaViz',
+
+  function (obj, genomeName) {
+     printf("trenaViz::addGenome");
+     payload <- genomeName
+     send(obj, list(cmd="setGenome", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     printf("browserResponseReady")
+     getBrowserResponse(obj);
+     })
 
 #----------------------------------------------------------------------------------------------------

@@ -1,9 +1,12 @@
 <html>
 <head>
-   <meta charset="utf-8">
+  <meta charset="utf-8">
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="http://igv.org/web/release/1.0.9/igv-1.0.9.js"></script>
+  <link rel="stylesheet" type="text/css" href="http://igv.org/web/release/1.0.9/igv-1.0.9.css">
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css"/>
 
 <script>
 m4_include(bundle.js)
@@ -13,7 +16,7 @@ m4_include(bundle.js)
 <body>
 <div id="trenaVizDiv">
   <ul>
-    <li><a href="#igvDiv">IGV</a></li>
+    <li><a href="#igvOuterDiv">IGV</a></li>
     <li><a href="#cyOuterDiv">TRN</a></li>
   </ul>
 
@@ -29,7 +32,9 @@ m4_include(bundle.js)
      <div id="cyDiv"></div>
   </div>
 
-  <div id="igvDiv"> </div>
+  <div id="igvOuterDiv">
+     <div id="igvDiv"> </div>
+  </div>
 
 </div>
 </body>

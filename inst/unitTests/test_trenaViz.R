@@ -41,6 +41,16 @@ testPing <- function()
    checkEquals(ping(tv), "pong")
    closeWebSocket(tv)
 
+} # testPing
+#--------------------------------------------------------------------------------
+testIGV <- function()
+{
+   print("--- testIGV")
+   tv <- trenaViz(PORT.RANGE)
+   checkTrue(ready(tv))
+   checkEquals(ping(tv), "pong")
+   closeWebSocket(tv)
+
 } # demo
 #--------------------------------------------------------------------------------
 if(!interactive())
