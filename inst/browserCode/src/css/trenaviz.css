@@ -1,15 +1,12 @@
 #trenaVizDiv {
-  //background-color: #F0F0F0;
-  //position: relative;
   height: 80px;
   width: 100%;
   border: 1px solid #aaa;
   border-radius: 5px;
-  //margin-right: auto;
-  //margin-left: auto;
-  //margin-top: 20px;
-  //margin-bottom: auto;
-  //padding: 0px;
+  }
+
+#cyDiv{
+    background-color: #E8E8E8;
   }
 
 #igvOuterDiv{

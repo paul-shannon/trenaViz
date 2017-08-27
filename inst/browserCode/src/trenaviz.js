@@ -5,9 +5,7 @@ import css from './css/trenaviz.css';
 //----------------------------------------------------------------------------------------------------
 var TrenaViz = (function(){
 
-   var hub;                     // defined in BrowserViz.js, has lots of helpful socket
-                                // and message support
-   var bvDemo;                  // this simple webapp
+   var hub;       // defined in browserviz.js, has lots of helpful socket and message support
 
 //----------------------------------------------------------------------------------------------------
 function setHub(newHub)
@@ -20,41 +18,45 @@ function addMessageHandlers()
 {
    var self = this;  // the context of the current object, Trenaviz
 
-   //var bound_respondToPing = respondToPing.bind(self);
-   //hub.addMessageHandler("ping",  bound_respondToPing)
-   hub.addMessageHandler("ping",  respondToPing.bind(self));
-
+   hub.addMessageHandler("ping",          respondToPing.bind(self));
    hub.addMessageHandler("setGenome",     setGenome.bind(self));
-
 
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
 // called out of the hub once the web page (the DOM) is ready (fully loaded)
 function initializeUI()
 {
-  console.log("=== STARTING 527 inst/browserCode/src/trenaviz.js initializeUI");
+   console.log("=== STARTING 527 inst/browserCode/src/trenaviz.js initializeUI");
 
-  var trenaVizDiv = $("#trenaVizDiv");
+   var trenaVizDiv = $("#trenaVizDiv");
 
-  console.log("about to call tabs");
-  setTimeout(function() {$("#trenaVizDiv").tabs()}, 0);
-
+   console.log("about to call tabs");
+   setTimeout(function() {$("#trenaVizDiv").tabs()}, 0);
 
    var bound_handleWindowResize = this.handleWindowResize.bind(this);
    setTimeout(function(){bound_handleWindowResize();}, 250)
    $(window).resize(bound_handleWindowResize);
 
+   console.log("=== about to bind and run initializeTrnCytoscape.  this:");
+   console.log(this)
+
+   var bound_initCy = this.initializeTrnCytoscape.bind(this);
+   console.log("--- about to encounter debugger in initializeUI")
+   setTimeout(function(){bound_initCy}, 0);
+   //this.initializeTrnCytoscape();
    console.log("=== ending inst/browserCode/src/trenaviz.js initializeUI");
 
 }  // initializeUI
 //----------------------------------------------------------------------------------------------------
 function handleWindowResize ()
 {
-   console.log("--- starting handleWindowResize");
-   console.log(this);
    var tabsDiv = $("#trenaVizDiv");
-   //tabsDiv.width(0.95 * $(window).width());
-   tabsDiv.height(0.90 * $(window).height());
+
+   tabsDiv.width(0.98  * $(window).width());
+   tabsDiv.height(0.92 * $(window).height());
+
+   $("#cyDiv").width(0.92 * tabsDiv.width());
+   $("#cyDiv").height(tabsDiv.height()-100);
 
 } // handleWindowResize
 //--------------------------------------------------------------------------------
@@ -80,9 +82,9 @@ function setGenome(msg)
      hub.send(return_msg);
      } // if unsupported genome
 
+   $('a[href="#igvOuterDiv"]').click();
    setTimeout(function(){this.igvBrowser = initializeIGV(genomeName);}, 0);
    hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
-
 
 } // setGenome
 //----------------------------------------------------------------------------------------------------
@@ -161,13 +163,63 @@ function initializeIGV(genomeName)
    console.log("after igv createBrowser");
 
 } // initializeIGV
+//----------------------------------------------------------------------------------------------------
+function initializeTrnCytoscape()
+{
+  console.log("=== starting initializeTrnCytoscape")
+  console.log(" ---> this?")
+  console.log(this)
+  console.log("--**-- about to encounter debugger in initializeTrnCytoscape")
+  debugger;
+  console.log("--**-- after debugger in initializeTrnCytoscape")
+
+  var options = {container: $("#cyDiv"),
+                 elements: {nodes: [{data: {id:'a'}}],
+                            edges: [{data:{source:'a', target:'a'}}]},
+                 style: cytoscape.stylesheet()
+                 .selector('node').style({'background-color': '#ddd',
+                                          'label': 'data(id)',
+                                          'text-valign': 'center',
+                                          'text-halign': 'center',
+                                          'border-width': 1})
+                 .selector('node:selected').style({'overlay-opacity': 0.2,
+                                                   'overlay-color': 'gray'})
+                 .selector('edge').style({'line-color': 'black',
+                                          'target-arrow-shape': 'triangle',
+                                          'target-arrow-color': 'black',
+                                          'curve-style': 'bezier'})
+                 .selector('edge:selected').style({'overlay-opacity': 0.2,
+                                                   'overlay-color': 'gray'})
+                };
+
+    console.log("about to call cytoscape with options");
+    var cy = cytoscape(options);
+    this.cyjs = cy;
+    console.log("cy created, about to be returned");
+    console.log(cy);
+    return(cy);
+
+} // initializeTrnCytoscape
+//----------------------------------------------------------------------------------------------------
+function initializeTrnCytoscapeButtons(self)
+{
+   $("#cyFitButton").click(function(){cy.fit(50)});
+   $("#cyFitSelectedButton").click(function(){cy.fit(cy.nodes(":selected"), 50)});
+   $("#cySFNButton").click(function(){cy.nodes(':selected').neighborhood().nodes().select()});
+   $("#cyHideUnselectedButton").click(function(){cy.nodes(":unselected").hide()});
+   $("#cyShowAllButton").click(function(){cy.nodes().show(); cy.edges().show()});
+   $("#cyCycleThroughModelsButton").click(function(){nextCyModel("rs3875089")});
+
+} // initializeTrnCytoscapeButtons
+
 //-----------------------------------------------------------------------------------------------------
   return({
     setHub: setHub,
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize,
-    cyjs: cytoscape,
+    initializeTrnCytoscape: initializeTrnCytoscape,
+    //cyjs: cytoscape,
     igvBrowser: igv  // global variable defined by igv.js?
     });
 
@@ -186,6 +238,5 @@ var bound_initializeUI = tv.initializeUI.bind(tv);
 hub.addOnDocumentReadyFunction(bound_initializeUI);
 
 hub.start();
-debugger;
 
 //--------------------------------------------------------------------------------
