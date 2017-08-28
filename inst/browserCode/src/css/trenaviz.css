@@ -5,8 +5,25 @@
   border-radius: 5px;
   }
 
+#cyOuterDiv{
+  margin: 2px;
+  padding: 0px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+
+  }
+
+#cyMenubarDiv{
+  margin: 2px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  }
+
 #cyDiv{
-    background-color: #E8E8E8;
+  background-color: #F8F8F8;
+  margin: 2px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
   }
 
 #igvOuterDiv{

@@ -16,10 +16,11 @@ function setHub(newHub)
 //----------------------------------------------------------------------------------------------------
 function addMessageHandlers()
 {
-   var self = this;  // the context of the current object, Trenaviz
+   var self = this;  // the context of the current object, TrenaViz
 
    hub.addMessageHandler("ping",          respondToPing.bind(self));
    hub.addMessageHandler("setGenome",     setGenome.bind(self));
+   hub.addMessageHandler("setGraph",      setGraph.bind(self));
 
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
@@ -31,18 +32,37 @@ function initializeUI()
    var trenaVizDiv = $("#trenaVizDiv");
 
    console.log("about to call tabs");
-   setTimeout(function() {$("#trenaVizDiv").tabs()}, 0);
+
+   var self = this;
+
+   var activateFunction = function(event, ui){
+      if(ui.newPanel.is("#cyOuterDiv")){
+        console.log("cy!");
+        self.handleWindowResize();
+        if(self.cyjs != null){
+           self.cyjs.resize();
+	   }
+        } // cyOuterDiv
+      else if(ui.newPanel.is("#igvOuterDiv")){
+         console.log("igv!");
+         }
+      console.log("unrecognized tab activated");
+      }; // activateFunction
+
+   var tabOptions = {activate: activateFunction};
+
+   setTimeout(function() {$("#trenaVizDiv").tabs(tabOptions)}, 0);
 
    var bound_handleWindowResize = this.handleWindowResize.bind(this);
    setTimeout(function(){bound_handleWindowResize();}, 250)
    $(window).resize(bound_handleWindowResize);
 
-   console.log("=== about to bind and run initializeTrnCytoscape.  this:");
-   console.log(this)
+   //console.log("=== about to bind and run initializeTrnCytoscape.  this:");
+   //console.log(this)
 
-   var bound_initCy = this.initializeTrnCytoscape.bind(this);
-   console.log("--- about to encounter debugger in initializeUI")
-   setTimeout(function(){bound_initCy}, 0);
+   //var bound_initCy = this.initializeTrnCytoscape.bind(this);
+   //console.log("--- about to encounter debugger in initializeUI")
+   //setTimeout(function(){bound_initCy}, 0);
    //this.initializeTrnCytoscape();
    console.log("=== ending inst/browserCode/src/trenaviz.js initializeUI");
 
@@ -55,8 +75,9 @@ function handleWindowResize ()
    tabsDiv.width(0.98  * $(window).width());
    tabsDiv.height(0.92 * $(window).height());
 
-   $("#cyDiv").width(0.92 * tabsDiv.width());
-   $("#cyDiv").height(tabsDiv.height()-100);
+    //$("#cyDiv").width($("#cyOuterDiv").width()) // Width0.92 * tabsDiv.width());
+    $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());
+    $("#cyDiv").height(tabsDiv.height() - 3 * $("#cyMenubarDiv").height()); //tabsDiv.height()-100);
 
 } // handleWindowResize
 //--------------------------------------------------------------------------------
@@ -164,14 +185,32 @@ function initializeIGV(genomeName)
 
 } // initializeIGV
 //----------------------------------------------------------------------------------------------------
+function setGraph(msg)
+{
+     // soon: graphs = msg.payload, though more complex, since names
+     // of graphs will be sent as well
+   console.log("---> entering setGraph, this: ");
+   console.log(this);
+   $('a[href="#cyOuterDiv"]').click();
+   this.handleWindowResize();
+   this.cyjs = initializeTrnCytoscape();
+
+   var self = this;
+   setTimeout(function(){
+     console.log("about to call that.fit, self: ");
+     console.log(self);
+     self.cyjs.fit(100);
+     }, 500);
+
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // setGraph
+//----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscape()
 {
   console.log("=== starting initializeTrnCytoscape")
   console.log(" ---> this?")
   console.log(this)
-  console.log("--**-- about to encounter debugger in initializeTrnCytoscape")
-  debugger;
-  console.log("--**-- after debugger in initializeTrnCytoscape")
 
   var options = {container: $("#cyDiv"),
                  elements: {nodes: [{data: {id:'a'}}],
@@ -194,9 +233,6 @@ function initializeTrnCytoscape()
 
     console.log("about to call cytoscape with options");
     var cy = cytoscape(options);
-    this.cyjs = cy;
-    console.log("cy created, about to be returned");
-    console.log(cy);
     return(cy);
 
 } // initializeTrnCytoscape
@@ -217,9 +253,10 @@ function initializeTrnCytoscapeButtons(self)
     setHub: setHub,
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
-    handleWindowResize: handleWindowResize,
+    //handleWindowResize: handleWindowResize,
+    handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
-    //cyjs: cytoscape,
+    cyjs: null,
     igvBrowser: igv  // global variable defined by igv.js?
     });
 

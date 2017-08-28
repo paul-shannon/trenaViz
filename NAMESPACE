@@ -3,7 +3,8 @@ exportClasses(trenaViz)
 exportMethods (
    ping,
    getSelection,
-   setGenome
+   setGenome,
+   setGraph
    )
 
 export(
@@ -18,3 +19,4 @@ import(BiocGenerics)
 import(httpuv)
 import(jsonlite)
 import(Rcpp)
+import(graph)
