@@ -22,18 +22,21 @@ function addMessageHandlers()
    hub.addMessageHandler("setGenome",     setGenome.bind(self));
    hub.addMessageHandler("setGraph",      setGraph.bind(self));
 
+   hub.addMessageHandler("showGenomicRegion",  showGenomicRegion.bind(self));
+   hub.addMessageHandler("getGenomicRegion",   getGenomicRegion.bind(self));
+
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
 // called out of the hub once the web page (the DOM) is ready (fully loaded)
 function initializeUI()
 {
-   console.log("=== STARTING 527 inst/browserCode/src/trenaviz.js initializeUI");
+   var self = this;
 
+   console.log("=== STARTING 527 inst/browserCode/src/trenaviz.js initializeUI");
    var trenaVizDiv = $("#trenaVizDiv");
 
    console.log("about to call tabs");
 
-   var self = this;
 
    var activateFunction = function(event, ui){
       if(ui.newPanel.is("#cyOuterDiv")){
@@ -96,19 +99,22 @@ function setGenome(msg)
      hub.send(return_msg);
      } // if unsupported genome
 
+   var self = this;
    $('a[href="#igvOuterDiv"]').click();
-   setTimeout(function(){this.igvBrowser = initializeIGV(genomeName);}, 0);
+   setTimeout(function(){self.igvBrowser = initializeIGV(self, genomeName);}, 0);
    hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // setGenome
 //----------------------------------------------------------------------------------------------------
-function initializeIGV(genomeName)
+function initializeIGV(self, genomeName)
 {
    console.log("--- trenaViz, initializeIGV");
 
     var hg38_options = {
-	 locus: "MEF2C",
-         showRuler: true,
+	//locus: "MEF2C",
+     flanking: 1000,
+     showRuler: true,
+     minimumbBases: 10,
 
      reference: {id: "hg38",
                  //fastaURL: "http://igv.broadinstitute.org/genomes/seq/1kg_v37/human_g1k_v37_decoy.fasta",
@@ -170,13 +176,29 @@ function initializeIGV(genomeName)
 
    igvBrowser.on("locuschange",
        function(referenceFrame, chromLocString){
-         console.log("chromLocString: " + chromLocString);
-         //trenaViz.chromLocString = chromLocString;
+         self.chromLocString = chromLocString;
          });
 
-   console.log("after igv createBrowser");
+   return(igvBrowser);
 
 } // initializeIGV
+//----------------------------------------------------------------------------------------------------
+function showGenomicRegion(msg)
+{
+   console.log("=== showGenomicRegion");
+   var regionString = msg.payload.regionString;
+   this.igvBrowser.search(regionString)
+
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // showGenomicRegion
+//----------------------------------------------------------------------------------------------------
+function getGenomicRegion(msg)
+{
+   console.log("=== getGenomicRegion");
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: this.chromLocString});
+
+} // getGenomicRegion
 //----------------------------------------------------------------------------------------------------
 function setGraph(msg)
 {
@@ -253,7 +275,9 @@ function initializeTrnCytoscapeButtons(self)
     handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
     cyjs: null,
-    igvBrowser: igv  // global variable defined by igv.js?
+    //igvBrowser: igv,  // global variable defined by igv.js?
+    igvBrowser: null,  // global variable defined by igv.js?
+    chromLocString: null
     });
 
 }); // TrenaViz

@@ -4,7 +4,9 @@ exportMethods (
    ping,
    getSelection,
    setGenome,
-   setGraph
+   setGraph,
+   showGenomicRegion,
+   getGenomicRegion
    )
 
 export(

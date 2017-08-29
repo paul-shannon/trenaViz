@@ -47,11 +47,14 @@ testIGV <- function()
 {
    print("--- testIGV")
    tv <- trenaViz(PORT.RANGE)
-   checkTrue(ready(tv))
-   checkEquals(ping(tv), "pong")
-   closeWebSocket(tv)
+   setGenome(tv, "hg38")
+   Sys.sleep(5);
+   showGenomicRegion(tv, "AQP4")
+   Sys.sleep(5);
+   chromLocString <- getGenomicRegion(tv)
+   checkTrue(grepl("chr18:", chromLocString));
 
-} # demo
+} # testIGV
 #--------------------------------------------------------------------------------
 if(!interactive())
     runTests()
