@@ -6,7 +6,9 @@ exportMethods (
    setGenome,
    setGraph,
    showGenomicRegion,
-   getGenomicRegion
+   getGenomicRegion,
+   selectNodes,
+   getSelectedNodes
    )
 
 export(

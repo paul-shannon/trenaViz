@@ -14,6 +14,13 @@ setGeneric ('ping',  signature='obj', function (obj) standardGeneric ('ping'))
 setGeneric ('getSelection',  signature='obj', function (obj) standardGeneric ('getSelection'))
 setGeneric ('setGenome', signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
 setGeneric ('setGraph', signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
+
+setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
+setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
+
+setGeneric('selectNodes',         signature='obj', function(obj, nodeIDs) standardGeneric('selectNodes'))
+setGeneric('getSelectedNodes',    signature='obj', function(obj) standardGeneric('getSelectedNodes'))
+
 #----------------------------------------------------------------------------------------------------
 setupMessageHandlers <- function()
 {
@@ -56,7 +63,6 @@ setMethod('setGenome', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -72,8 +78,59 @@ setMethod('setGraph', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
      getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('showGenomicRegion', 'trenaViz',
+
+   function (obj, regionString) {
+     payload <- list(regionString=regionString)
+     send(obj, list(cmd="showGenomicRegion", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('getGenomicRegion', 'trenaViz',
+
+   function (obj) {
+     payload <- ""
+     send(obj, list(cmd="getGenomicRegion", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('selectNodes', 'trenaViz',
+
+  function (obj, nodeIDs) {
+     payload <- list(nodeIDs=nodeIDs)
+     send(obj, list(cmd="selectNodes", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('getSelectedNodes', 'trenaViz',
+
+  function (obj) {
+     payload <- ""
+     send(obj, list(cmd="getSelectedNodes", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     result <- fromJSON(getBrowserResponse(obj))$id;
+     if(all(is.null(result)))
+        return(list())
+     else
+        return(result)
      })
 
 #----------------------------------------------------------------------------------------------------

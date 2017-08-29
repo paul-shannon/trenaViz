@@ -31608,6 +31608,9 @@ function addMessageHandlers()
    hub.addMessageHandler("showGenomicRegion",  showGenomicRegion.bind(self));
    hub.addMessageHandler("getGenomicRegion",   getGenomicRegion.bind(self));
 
+   hub.addMessageHandler("getSelectedNodes",   getSelectedNodes.bind(self));
+   hub.addMessageHandler("selectNodes",        selectNodes.bind(self));
+
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
 // called out of the hub once the web page (the DOM) is ready (fully loaded)
@@ -31783,6 +31786,52 @@ function getGenomicRegion(msg)
 
 } // getGenomicRegion
 //----------------------------------------------------------------------------------------------------
+function selectNodes(msg)
+{
+   console.log("==== selectNodes");
+   console.log(msg.payload);
+   var nodeIDs = msg.payload.nodeIDs;
+
+   if(typeof(nodeIDs) == "string")
+      nodeIDs = [nodeIDs];
+
+   var filterStrings = [];
+
+   for(var i=0; i < nodeIDs.length; i++){
+     var s = '[id="' + nodeIDs[i] + '"]';
+     filterStrings.push(s);
+     } // for i
+
+
+   var nodesToSelect = this.cyjs.nodes(filterStrings.join());
+   nodesToSelect.select()
+
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // selectNodes
+//----------------------------------------------------------------------------------------------------
+function getSelectedNodes(msg)
+{
+   var status = "success";  // be optimistic
+   var payload = "";
+
+   if (typeof (this.cyjs) == "undefined"){
+      payload = JSON.stringify([]);
+      status = "error";
+      }
+   else if (this.cyjs.nodes().length == 0){
+      payload = JSON.stringify([]);
+      }
+   else {
+      payload =  JSON.stringify(this.cyjs.filter("node:selected").map(function(node) {
+                                return {id: node.data().id, name: node.data().name}}));
+      }
+
+   console.log("getNodes returning payload: " + payload);
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: payload});
+
+} // getSelectedNodes
+//---------------------------------------------------------------------------------------------------
 function setGraph(msg)
 {
      // soon: graphs = msg.payload, though more complex, since names
