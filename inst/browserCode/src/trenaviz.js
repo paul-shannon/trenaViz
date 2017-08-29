@@ -46,25 +46,17 @@ function initializeUI()
       else if(ui.newPanel.is("#igvOuterDiv")){
          console.log("igv!");
          }
-      console.log("unrecognized tab activated");
+      else{
+         console.log("unrecognized tab activated");
+	 }
       }; // activateFunction
 
    var tabOptions = {activate: activateFunction};
-
    setTimeout(function() {$("#trenaVizDiv").tabs(tabOptions)}, 0);
 
    var bound_handleWindowResize = this.handleWindowResize.bind(this);
    setTimeout(function(){bound_handleWindowResize();}, 250)
    $(window).resize(bound_handleWindowResize);
-
-   //console.log("=== about to bind and run initializeTrnCytoscape.  this:");
-   //console.log(this)
-
-   //var bound_initCy = this.initializeTrnCytoscape.bind(this);
-   //console.log("--- about to encounter debugger in initializeUI")
-   //setTimeout(function(){bound_initCy}, 0);
-   //this.initializeTrnCytoscape();
-   console.log("=== ending inst/browserCode/src/trenaviz.js initializeUI");
 
 }  // initializeUI
 //----------------------------------------------------------------------------------------------------
@@ -75,9 +67,10 @@ function handleWindowResize ()
    tabsDiv.width(0.98  * $(window).width());
    tabsDiv.height(0.92 * $(window).height());
 
-    //$("#cyDiv").width($("#cyOuterDiv").width()) // Width0.92 * tabsDiv.width());
-    $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());
-    $("#cyDiv").height(tabsDiv.height() - 3 * $("#cyMenubarDiv").height()); //tabsDiv.height()-100);
+   $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());
+   $("#cyDiv").height(tabsDiv.height() - 3 * $("#cyMenubarDiv").height()); //tabsDiv.height()-100);
+
+   $("#igvOuterDiv").height($("#trenaVizDiv").height() - (3 * $(".ui-tabs-nav").height()))
 
 } // handleWindowResize
 //--------------------------------------------------------------------------------
@@ -194,6 +187,7 @@ function setGraph(msg)
    $('a[href="#cyOuterDiv"]').click();
    this.handleWindowResize();
    this.cyjs = initializeTrnCytoscape();
+   initializeTrnCytoscapeButtons(this);
 
    var self = this;
    setTimeout(function(){
@@ -239,15 +233,17 @@ function initializeTrnCytoscape()
 //----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscapeButtons(self)
 {
-   $("#cyFitButton").click(function(){cy.fit(50)});
-   $("#cyFitSelectedButton").click(function(){cy.fit(cy.nodes(":selected"), 50)});
-   $("#cySFNButton").click(function(){cy.nodes(':selected').neighborhood().nodes().select()});
-   $("#cyHideUnselectedButton").click(function(){cy.nodes(":unselected").hide()});
-   $("#cyShowAllButton").click(function(){cy.nodes().show(); cy.edges().show()});
-   $("#cyCycleThroughModelsButton").click(function(){nextCyModel("rs3875089")});
+   $("#cyFitButton").click(function(){self.cyjs.fit(50)});
+   $("#cyFitSelectedButton").click(function(){self.cyjs.fit(self.cyjs.nodes(":selected"), 50)});
+
+   $("#cySFNButton").click(function(){self.cyjs.nodes(':selected').neighborhood().nodes().select()});
+
+   $("#cyHideUnselectedButton").click(function(){self.cyjs.nodes(":unselected").hide()});
+   $("#cyShowAllButton").click(function(){self.cyjs.nodes().show(); self.cyjs.edges().show()});
+
+   //$("#cyCycleThroughModelsButton").click(function(){nextCyModel("rs3875089")});
 
 } // initializeTrnCytoscapeButtons
-
 //-----------------------------------------------------------------------------------------------------
   return({
     setHub: setHub,

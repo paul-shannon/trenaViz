@@ -26,6 +26,13 @@
   border-radius: 5px;
   }
 
+.cyMenuButton{
+  margin-left: 6px;
+  margin-bottom: 6px;
+  margin-top: 8px;
+  background-color: #E8E8E8;
+  }
+
 #igvOuterDiv{
    margin: 10px;
    border-style: solid;
@@ -36,6 +43,7 @@
    overflow-y: scroll;
    height: 80%;
    }
+
 #igvDiv{
   padding-top: 10px;
   padding-bottom: 10px;
