@@ -31591,9 +31591,27 @@ var TrenaViz = (function(hub){
   var hub = hub;
 
 //----------------------------------------------------------------------------------------------------
+// development aid: used to ensure that the right "this" -- corresponding to the TrenaViz object --
+// is avaialable when needed
+function checkSignature(obj, callersName)
+{
+   var success = false;  // be pessimistic
+   if(Object.keys(obj).indexOf("signature") >= 0 && obj.signature.indexOf("TrenaViz" == 0)){
+      success = true;
+      }
+
+   if(!success){
+      console.log("--- error: not a TrenaViz object: " + callersName);
+      console.log(JSON.stringify(Object.keys(obj)))
+      throw new Error("object is not a TrenaViz this!");
+      }
+
+} // checkSignature
+//----------------------------------------------------------------------------------------------------
 function addMessageHandlers()
 {
    var self = this;  // the context of the current object, TrenaViz
+   checkSignature(self, "addMessageHandlers");
 
    self.hub.addMessageHandler("ping",               respondToPing.bind(self));
    self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
@@ -31607,10 +31625,15 @@ function addMessageHandlers()
 
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
-// called out of the hub once the web page (the DOM) is ready (fully loaded)
+// called out of the hub once the web page (the DOM) is ready (fully loaded).
+// tv(this) is explicitly bound to this function
+//   1. create tabs
+//   2. window resize handler is bound and assignes
 function initializeUI()
 {
    var self = this;
+   checkSignature(self, "initializeUI");
+
    var trenaVizDiv = $("#trenaVizDiv");
 
    var activateFunction = function(event, ui){
@@ -31654,36 +31677,41 @@ function handleWindowResize ()
 //--------------------------------------------------------------------------------
 function respondToPing (msg)
 {
-   console.log("==== entering trenaviz.js::respondToPing, msg:");
-   console.log(msg)
+   var self = this;
+   checkSignature(self, "respondToPing")
+
    var return_msg = {cmd: msg.callback, status: "success", callback: "", payload: "pong"};
-   hub.send(return_msg);
+   self.hub.send(return_msg);
 
 } // respondToPing
 //------------------------------------------------------------------------------------------------------------------------
 function setGenome(msg)
 {
-  var supportedGenomes = ["hg38", "mm10"];
-  var genomeName = msg.payload;
-  var returnPayload = "";
-
-  if(supportedGenomes.indexOf(genomeName) < 0){
-     status = "failure"
-     returnPayload = "error, unsupported genome: '" + genomeName + "'";
-     var return_msg = {cmd: msg.callback, status: status, callback: "", payload: returnPayload};
-     hub.send(return_msg);
-     } // if unsupported genome
-
    var self = this;
-   $('a[href="#igvOuterDiv"]').click();
-   setTimeout(function(){self.igvBrowser = initializeIGV(self, genomeName);}, 0);
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+   checkSignature(self, "setGenome")
+
+   var supportedGenomes = ["hg38", "mm10"];
+   var genomeName = msg.payload;
+   var returnPayload = "";
+
+   if(supportedGenomes.indexOf(genomeName) < 0){
+      status = "failure"
+      returnPayload = "error, unsupported genome: '" + genomeName + "'";
+      var return_msg = {cmd: msg.callback, status: status, callback: "", payload: returnPayload};
+      hub.send(return_msg);
+      } // if unsupported genome
+
+    $('a[href="#igvOuterDiv"]').click();
+    setTimeout(function(){self.igvBrowser = initializeIGV(self, genomeName);}, 0);
+    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // setGenome
 //----------------------------------------------------------------------------------------------------
 function initializeIGV(self, genomeName)
 {
    console.log("--- trenaViz, initializeIGV");
+
+   checkSignature(self, "initializeIGV")
 
     var hg38_options = {
 	//locus: "MEF2C",
@@ -31760,23 +31788,30 @@ function initializeIGV(self, genomeName)
 //----------------------------------------------------------------------------------------------------
 function showGenomicRegion(msg)
 {
-   console.log("=== showGenomicRegion");
-   var regionString = msg.payload.regionString;
-   this.igvBrowser.search(regionString)
+   var self = this;
+   checkSignature(self, "showGenomicRegion")
 
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+   var regionString = msg.payload.regionString;
+   self.igvBrowser.search(regionString)
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // showGenomicRegion
 //----------------------------------------------------------------------------------------------------
 function getGenomicRegion(msg)
 {
-   console.log("=== getGenomicRegion");
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: this.chromLocString});
+   var self = this;
+   checkSignature(self, "getGenomicRegion")
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: this.chromLocString});
 
 } // getGenomicRegion
 //----------------------------------------------------------------------------------------------------
 function selectNodes(msg)
 {
+   var self = this;
+   checkSignature(self, "selectNodes")
+
    console.log("==== selectNodes");
    console.log(msg.payload);
    var nodeIDs = msg.payload.nodeIDs;
@@ -31792,15 +31827,18 @@ function selectNodes(msg)
      } // for i
 
 
-   var nodesToSelect = this.cyjs.nodes(filterStrings.join());
+   var nodesToSelect = self.cyjs.nodes(filterStrings.join());
    nodesToSelect.select()
 
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // selectNodes
 //----------------------------------------------------------------------------------------------------
 function getSelectedNodes(msg)
 {
+   var self = this;
+   checkSignature(self, "getSelectedNodes")
+
    var status = "success";  // be optimistic
    var payload = "";
 
@@ -31812,12 +31850,12 @@ function getSelectedNodes(msg)
       payload = JSON.stringify([]);
       }
    else {
-      payload =  JSON.stringify(this.cyjs.filter("node:selected").map(function(node) {
+      payload =  JSON.stringify(self.cyjs.filter("node:selected").map(function(node) {
                                 return {id: node.data().id, name: node.data().name}}));
       }
 
    console.log("getNodes returning payload: " + payload);
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: payload});
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: payload});
 
 } // getSelectedNodes
 //---------------------------------------------------------------------------------------------------
@@ -31825,30 +31863,29 @@ function setGraph(msg)
 {
      // soon: graphs = msg.payload, though more complex, since names
      // of graphs will be sent as well
+
+   var self = this;
+   checkSignature(self, "setGraph")
+
    console.log("---> entering setGraph, this: ");
    console.log(this);
    $('a[href="#cyOuterDiv"]').click();
-   this.handleWindowResize();
-   this.cyjs = initializeTrnCytoscape();
-   initializeTrnCytoscapeButtons(this);
+   self.handleWindowResize();
+   self.cyjs = initializeTrnCytoscape();
+   initializeTrnCytoscapeButtons(self);
 
-   var self = this;
    setTimeout(function(){
      console.log("about to call that.fit, self: ");
      console.log(self);
      self.cyjs.fit(100);
      }, 500);
 
-   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // setGraph
 //----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscape()
 {
-  console.log("=== starting initializeTrnCytoscape")
-  console.log(" ---> this?")
-  console.log(this)
-
   var options = {container: $("#cyDiv"),
                  elements: {nodes: [{data: {id:'a'}}],
                             edges: [{data:{source:'a', target:'a'}}]},
@@ -31876,6 +31913,8 @@ function initializeTrnCytoscape()
 //----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscapeButtons(self)
 {
+   checkSignature(self, "intializeTrnCytoscapeButtons")
+
    $("#cyFitButton").click(function(){self.cyjs.fit(50)});
    $("#cyFitSelectedButton").click(function(){self.cyjs.fit(self.cyjs.nodes(":selected"), 50)});
 
@@ -31889,6 +31928,8 @@ function initializeTrnCytoscapeButtons(self)
 } // initializeTrnCytoscapeButtons
 //-----------------------------------------------------------------------------------------------------
   return({
+
+    signature: "TrenaViz 0.99.4",
 
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
