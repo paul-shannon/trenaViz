@@ -346,7 +346,7 @@ function initializeTrnCytoscapeButtons(self)
 //-----------------------------------------------------------------------------------------------------
   return({
 
-    signature: "TrenaViz 0.99.4",
+    signature: "TrenaViz 0.99.5",
 
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
