@@ -13,13 +13,15 @@ runTests <- function()
   testPing()
   testIGV()
   testGraph()
-  closeWebSocket(tv)
+  testLoadTracks()
+
+  #closeWebSocket(tv)
 
 } # runTests
 #--------------------------------------------------------------------------------
 testConstructor <- function()
 {
-   print("--- testConstructor")
+   printf("--- testConstructor")
    checkTrue(ready(tv))
    checkTrue(port(tv) %in% PORT.RANGE)
 
@@ -27,7 +29,7 @@ testConstructor <- function()
 #--------------------------------------------------------------------------------
 testWindowTitle <- function()
 {
-   print("--- testWindowTitle")
+   printf("--- testWindowTitle")
    checkTrue(ready(tv))
    checkEquals(getBrowserWindowTitle(tv), "trenaViz")
    setBrowserWindowTitle(tv, "new title");
@@ -37,7 +39,7 @@ testWindowTitle <- function()
 #--------------------------------------------------------------------------------
 testPing <- function()
 {
-   print("--- testPing")
+   printf("--- testPing")
    checkTrue(ready(tv))
    checkEquals(ping(tv), "pong")
 
@@ -45,7 +47,7 @@ testPing <- function()
 #--------------------------------------------------------------------------------
 testIGV <- function()
 {
-   print("--- testIGV")
+   printf("--- testIGV")
    setGenome(tv, "hg38")
    Sys.sleep(5);
    showGenomicRegion(tv, "AQP4")
@@ -57,7 +59,7 @@ testIGV <- function()
 #--------------------------------------------------------------------------------
 testGraph <- function()
 {
-   print("--- testCyjs")
+   printf("--- testGraph")
    setGraph(tv);
    Sys.sleep(2);
    checkEquals(length(getSelectedNodes(tv)), 0)
@@ -66,6 +68,29 @@ testGraph <- function()
    checkEquals(getSelectedNodes(tv), "a")
 
 } # testGraph
+#--------------------------------------------------------------------------------
+testLoadTracks <- function()
+{
+   printf("--- testLoadTracks")
+
+   setBrowserWindowTitle(tv, "test load tracks")
+   segments <- 5
+   starts <- 26860646 + round(runif(segments,3,30))
+   ends   <- starts + round(runif(segments,3,30))
+   tbl.bed <- data.frame(chrom=rep("18", segments),
+                         start=starts,
+                         end=ends,
+                         name=LETTERS[1:segments],
+                         score=runif(segments, -1, 1),
+                         stringsAsFactors=FALSE)
+
+   addBedTrackFromDataFrame(tv, sprintf("data.frame"), tbl.bed, displayMode="EXPANDED", color="darkRed")
+   showGenomicRegion(tv, sprintf("chr18:%d-%d", min(tbl.bed$start) - 10, max(tbl.bed$end) + 10))
+   #addBedTrackFromHostedFile,
+   #addBedGraphTrackFromDataFrame
+
+
+} # testLoadTracks
 #--------------------------------------------------------------------------------
 if(!interactive())
     runTests()

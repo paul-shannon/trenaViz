@@ -17,6 +17,15 @@ setGeneric ('setGraph', signature='obj', function (obj, graph=NULL) standardGene
 
 setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
 setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
+setGeneric('addBedTrackFromDataFrame',  signature='obj',
+                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray")
+                       standardGeneric('addBedTrackFromDataFrame'))
+setGeneric('addBedTrackFromHostedFile',   signature='obj',
+                      function(obj, trackName, uri, index.uri=NA, displayMode="COLLAPSED", color="lightgray")
+                      standardGeneric('addBedTrackFromHostedFile'))
+setGeneric('addBedGraphTrackFromDataFrame', signature='obj',
+                      function(obj, trackName, tbl.bed, displayMode="COLLAPSED",minValue=NA, maxValue=NA, color)
+                      standardGeneric('addBedGraphTrackFromDataFrame'))
 
 setGeneric('selectNodes',         signature='obj', function(obj, nodeIDs) standardGeneric('selectNodes'))
 setGeneric('getSelectedNodes',    signature='obj', function(obj) standardGeneric('getSelectedNodes'))
@@ -35,7 +44,8 @@ trenaViz = function(portRange, host="localhost", title="trenaViz", quiet=TRUE)
       printf("want to load %s", trenaVizBrowserFile)
       }
 
-   obj <- .trenaViz(BrowserViz(portRange, host, title, quiet, browserFile=trenaVizBrowserFile))
+   obj <- .trenaViz(BrowserViz(portRange, host, title, quiet, browserFile=trenaVizBrowserFile,
+                               httpQueryProcessingFunction=myQP))
    setBrowserWindowTitle(obj, title)
 
    obj
@@ -106,6 +116,73 @@ setMethod('getGenomicRegion', 'trenaViz',
      })
 
 #----------------------------------------------------------------------------------------------------
+setMethod('addBedTrackFromDataFrame', 'trenaViz',
+
+  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color) {
+     printf("TrenaViz::addBedTrackFromDataFrame");
+     temp.filename <- "tmp.bed"
+     write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
+     payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color)
+     send(obj, list(cmd="addBedTrackFromDataFrame", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     printf("browserResponseReady")
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
+
+  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray") {
+     printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
+     required.colnames <- c("chr", "start", "end", "score")
+     missing.colnames <- setdiff(required.colnames, colnames(tbl.bed))
+     if(length(missing.colnames) > 0){
+        printf("addBedGraphTrackFromDataFrame detects missing column name: %s",
+               paste(missing.colnames, collapse=", "))
+        return()
+        }
+
+     if(is.na(minValue))
+        minValue <- min(tbl.bed$score)
+
+     if(is.na(maxValue))
+        maxValue <- max(tbl.bed$score)
+
+     temp.filename <- "tmp.bedGraph"
+     write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
+     payload <- list(name=trackName,
+                     bedFileName=temp.filename,
+                     displayMode=displayMode,
+                     color=color,
+                     min=minValue,
+                     max=maxValue)
+
+     send(obj, list(cmd="addBedGraphTrackFromDataFrame", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     printf("browserResponseReady")
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('addBedTrackFromHostedFile', 'trenaViz',
+
+  function (obj, trackName, uri, index.uri, displayMode="COLLAPSED", color) {
+     printf("TrenaViz::addBedTrackFromHostedFile");
+     payload <- list(name=trackName, uri=uri, indexUri=index.uri, displayMode=displayMode, color=color)
+     send(obj, list(cmd="addBedTrackFromHostedFile", callback="handleResponse",
+                    status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     printf("browserResponseReady")
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
 setMethod('selectNodes', 'trenaViz',
 
   function (obj, nodeIDs) {
@@ -133,4 +210,44 @@ setMethod('getSelectedNodes', 'trenaViz',
         return(result)
      })
 
+#----------------------------------------------------------------------------------------------------
+myQP <- function(queryString)
+{
+   printf("=== TReNA-Viz::myQP");
+   #print(queryString)
+     # for reasons not quite clear, the query string comes in with extra characters
+     # following the expected filename:
+     #
+     #  "?sampleStyle.js&_=1443650062946"
+     #
+     # check for that, cleanup the string, then see if the file can be found
+
+   ampersand.loc <- as.integer(regexpr("&", queryString, fixed=TRUE))
+   #printf("ampersand.loc: %d", ampersand.loc)
+
+   if(ampersand.loc > 0){
+      queryString <- substring(queryString, 1, ampersand.loc - 1);
+      }
+
+   questionMark.loc <- as.integer(regexpr("?", queryString, fixed=TRUE));
+   #printf("questionMark.loc: %d", questionMark.loc)
+
+   if(questionMark.loc == 1)
+      queryString <- substring(queryString, 2, nchar(queryString))
+
+   filename <- queryString;
+   #printf("myQP filename: '%s'", filename)
+   #printf("       exists?  %s", file.exists(filename));
+
+   stopifnot(file.exists(filename))
+
+   printf("--- about to scan %s", filename);
+      # reconstitute linefeeds though collapsing file into one string, so json
+      # structure is intact, and any "//" comment tokens only affect one line
+   text <- paste(scan(filename, what=character(0), sep="\n", quiet=TRUE), collapse="\n")
+   printf("%d chars read from %s", nchar(text), filename);
+
+   return(text);
+
+} # myQP
 #----------------------------------------------------------------------------------------------------

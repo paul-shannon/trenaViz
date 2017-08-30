@@ -1,7 +1,6 @@
 "use strict";
 var cytoscape = require('cytoscape');
 import css from './css/trenaviz.css';
-
 //----------------------------------------------------------------------------------------------------
 var TrenaViz = (function(hub){
 
@@ -39,6 +38,13 @@ function addMessageHandlers()
 
    self.hub.addMessageHandler("getSelectedNodes",   getSelectedNodes.bind(self));
    self.hub.addMessageHandler("selectNodes",        selectNodes.bind(self));
+
+   self.hub.addMessageHandler("addBedTrackFromDataFrame",  addBedTrackFromDataFrame.bind(self));
+   self.hub.addMessageHandler("addBedTrackFromHostedFile", addBedTrackFromHostedFile.bind(self));
+
+   self.hub.addMessageHandler("addBedGraphTrackFromDataFrame",  addBedGraphTrackFromDataFrame.bind(self));
+
+
 
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
@@ -223,6 +229,105 @@ function getGenomicRegion(msg)
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: this.chromLocString});
 
 } // getGenomicRegion
+//----------------------------------------------------------------------------------------------------
+function addBedTrackFromDataFrame(msg)
+{
+   var self = this;
+   checkSignature(self, "addBedTrackFromDataFrame")
+
+   console.log("=== addBedTrackFromDataFrame");
+   console.log(JSON.stringify(msg));
+
+   var trackName = msg.payload.name;
+   var bedFileName = msg.payload.bedFileName;
+   var displayMode = msg.payload.displayMode;
+   var color = msg.payload.color;
+   var url = window.location.href + "?" + bedFileName;
+
+   var config = {format: "bed",
+                 name: trackName,
+                 url: url,
+                 indexed:false,
+                 displayMode: displayMode,
+                 sourceType: "file",
+                 color: color,
+                 type: "annotation"};
+
+   console.log(JSON.stringify(config));
+   self.igvBrowser.loadTrack(config);
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // addBedTrackFromDataFrame
+//----------------------------------------------------------------------------------------------------
+function addBedGraphTrackFromDataFrame(msg)
+{
+   var self = this;
+   checkSignature(self, "addBedGraphTrackFromDataFrame")
+
+   console.log("--- addBedGraphTrackFromDataFrame");
+   console.log(msg.payload)
+
+   var trackName = msg.payload.name;
+   var bedFileName = msg.payload.bedFileName;
+   var displayMode = msg.payload.displayMode;
+   var color = msg.payload.color;
+   var minValue = msg.payload.min
+   var maxValue = msg.payload.max
+
+   var url = window.location.href + "?" + bedFileName;
+
+   var config = {format: "bedgraph",
+                 name: trackName,
+                 url: url,
+                 min: minValue,
+                 max: maxValue,
+                 indexed:false,
+                 displayMode: displayMode,
+                 sourceType: "file",
+                 color: color,
+                 type: "wig"};
+
+   self.igvBrowser.loadTrack(config);
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // addBedGraphTrackFromDataFrame
+//----------------------------------------------------------------------------------------------------
+function addBedTrackFromHostedFile(msg)
+{
+   var self = this;
+   checkSignature(self, "addBedTrackFromHostedFile")
+
+   console.log("=== addBedTrackFromFile");
+
+   var trackName = msg.payload.name;
+   var displayMode = msg.payload.displayMode;
+   var color = msg.payload.color;
+   var uri       = msg.payload.uri;
+   var indexUri  = msg.payload.indexUri;
+   var indexed = true;
+
+   if(indexUri==null){
+     indexed = false;
+     }
+
+   var config = {format: "bed",
+                 name: trackName,
+                 url: uri,
+                 indexed: indexed,
+                 displayMode: displayMode,
+                 color: color,
+                 type: "annotation"};
+
+   if(indexed){
+     config.indexURL = indexUri;
+     }
+
+   self.igvBrowser.loadTrack(config);
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // addBedTrackFromHostedFile
 //----------------------------------------------------------------------------------------------------
 function selectNodes(msg)
 {
