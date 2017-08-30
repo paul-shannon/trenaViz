@@ -5,29 +5,22 @@ import css from './css/trenaviz.css';
 //----------------------------------------------------------------------------------------------------
 var TrenaViz = (function(hub){
 
-   var hub;       // defined in browserviz.js, has lots of helpful socket and message support
-   var xyz;
+  var hub = hub;
 
-//----------------------------------------------------------------------------------------------------
-function setHub(newHub)
-{
-   hub = newHub;
-
-} // setHub
 //----------------------------------------------------------------------------------------------------
 function addMessageHandlers()
 {
    var self = this;  // the context of the current object, TrenaViz
 
-   hub.addMessageHandler("ping",          respondToPing.bind(self));
-   hub.addMessageHandler("setGenome",     setGenome.bind(self));
-   hub.addMessageHandler("setGraph",      setGraph.bind(self));
+   self.hub.addMessageHandler("ping",               respondToPing.bind(self));
+   self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
+   self.hub.addMessageHandler("setGraph",           setGraph.bind(self));
 
-   hub.addMessageHandler("showGenomicRegion",  showGenomicRegion.bind(self));
-   hub.addMessageHandler("getGenomicRegion",   getGenomicRegion.bind(self));
+   self.hub.addMessageHandler("showGenomicRegion",  showGenomicRegion.bind(self));
+   self.hub.addMessageHandler("getGenomicRegion",   getGenomicRegion.bind(self));
 
-   hub.addMessageHandler("getSelectedNodes",   getSelectedNodes.bind(self));
-   hub.addMessageHandler("selectNodes",        selectNodes.bind(self));
+   self.hub.addMessageHandler("getSelectedNodes",   getSelectedNodes.bind(self));
+   self.hub.addMessageHandler("selectNodes",        selectNodes.bind(self));
 
 } // addMessageHandlers
 //----------------------------------------------------------------------------------------------------
@@ -35,12 +28,7 @@ function addMessageHandlers()
 function initializeUI()
 {
    var self = this;
-
-   console.log("=== STARTING 527 inst/browserCode/src/trenaviz.js initializeUI");
    var trenaVizDiv = $("#trenaVizDiv");
-
-   console.log("about to call tabs");
-
 
    var activateFunction = function(event, ui){
       if(ui.newPanel.is("#cyOuterDiv")){
@@ -61,7 +49,7 @@ function initializeUI()
    var tabOptions = {activate: activateFunction};
    setTimeout(function() {$("#trenaVizDiv").tabs(tabOptions)}, 0);
 
-   var bound_handleWindowResize = this.handleWindowResize.bind(this);
+   var bound_handleWindowResize = this.handleWindowResize.bind(self);
    setTimeout(function(){bound_handleWindowResize();}, 250)
    $(window).resize(bound_handleWindowResize);
 
@@ -319,7 +307,6 @@ function initializeTrnCytoscapeButtons(self)
 //-----------------------------------------------------------------------------------------------------
   return({
 
-    setHub: setHub,
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize.bind(this),
@@ -336,13 +323,9 @@ function initializeTrnCytoscapeButtons(self)
 var hub = require("browservizjs")
 var tv = TrenaViz(hub);
 hub.init();
-window.tv = tv;
-
 tv.addMessageHandlers()
-
-var bound_initializeUI = tv.initializeUI.bind(tv);
-hub.addOnDocumentReadyFunction(bound_initializeUI);
-
+hub.addOnDocumentReadyFunction(tv.initializeUI.bind(tv));
 hub.start();
+window.tv = tv;
 
 //--------------------------------------------------------------------------------
