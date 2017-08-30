@@ -3,9 +3,10 @@ var cytoscape = require('cytoscape');
 import css from './css/trenaviz.css';
 
 //----------------------------------------------------------------------------------------------------
-var TrenaViz = (function(){
+var TrenaViz = (function(hub){
 
    var hub;       // defined in browserviz.js, has lots of helpful socket and message support
+   var xyz;
 
 //----------------------------------------------------------------------------------------------------
 function setHub(newHub)
@@ -317,26 +318,25 @@ function initializeTrnCytoscapeButtons(self)
 } // initializeTrnCytoscapeButtons
 //-----------------------------------------------------------------------------------------------------
   return({
+
     setHub: setHub,
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
-    //handleWindowResize: handleWindowResize,
     handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
+
+    hub: hub,
     cyjs: null,
-    //igvBrowser: igv,  // global variable defined by igv.js?
-    igvBrowser: null,  // global variable defined by igv.js?
+    igvBrowser: null,
     chromLocString: null
     });
 
 }); // TrenaViz
 //--------------------------------------------------------------------------------
 var hub = require("browservizjs")
-var tv = TrenaViz();
-window.tv = tv;
-
-tv.setHub(hub)
+var tv = TrenaViz(hub);
 hub.init();
+window.tv = tv;
 
 tv.addMessageHandlers()
 
