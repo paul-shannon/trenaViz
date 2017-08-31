@@ -74,18 +74,26 @@ testLoadTracks <- function()
    printf("--- testLoadTracks")
 
    setBrowserWindowTitle(tv, "test load tracks")
+   checkEquals(getTrackNames(tv), "Gencode v24")
+
    segments <- 5
-   starts <- 26860646 + round(runif(segments,3,30))
-   ends   <- starts + round(runif(segments,3,30))
-   tbl.bed <- data.frame(chrom=rep("18", segments),
+   set.seed(17);
+   starts <- 26860646 + round(runif(segments,3,300))
+   ends   <- starts + round(runif(segments,3,8))
+   tbl.bed <- data.frame(chr=rep("18", segments),
                          start=starts,
                          end=ends,
                          name=LETTERS[1:segments],
                          score=runif(segments, -1, 1),
                          stringsAsFactors=FALSE)
 
-   addBedTrackFromDataFrame(tv, sprintf("data.frame"), tbl.bed, displayMode="EXPANDED", color="darkRed")
+   addBedTrackFromDataFrame(tv, "tbl.bed", tbl.bed, displayMode="EXPANDED", color="darkRed")
    showGenomicRegion(tv, sprintf("chr18:%d-%d", min(tbl.bed$start) - 10, max(tbl.bed$end) + 10))
+
+   tbl.bedGraph <- tbl.bed[, c(1,2,3,5,4)]
+   addBedGraphTrackFromDataFrame(tv, "tbl.bedGraph", tbl.bedGraph, color="darkGreen",
+                                 minValue=min(tbl.bedGraph$score), maxValue=max(tbl.bedGraph$score),
+                                 displayMode="EXPANDED")
    #addBedTrackFromHostedFile,
    #addBedGraphTrackFromDataFrame
 

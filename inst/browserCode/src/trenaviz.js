@@ -33,6 +33,9 @@ function addMessageHandlers()
    self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
    self.hub.addMessageHandler("setGraph",           setGraph.bind(self));
 
+   self.hub.addMessageHandler("getTrackNames",      getTrackNames.bind(self));
+   self.hub.addMessageHandler("removeTracksByName", removeTracksByName.bind(self));
+
    self.hub.addMessageHandler("showGenomicRegion",  showGenomicRegion.bind(self));
    self.hub.addMessageHandler("getGenomicRegion",   getGenomicRegion.bind(self));
 
@@ -230,6 +233,44 @@ function getGenomicRegion(msg)
 
 } // getGenomicRegion
 //----------------------------------------------------------------------------------------------------
+function getTrackNames(msg)
+{
+   var self = this;
+   checkSignature(self, "getTrackNames");
+
+   var result = [];
+   var count = self.igvBrowser.trackViews.length;
+
+   for(var i=0; i < count; i++){
+      var trackName = self.igvBrowser.trackViews[i].track.name;
+      if(trackName.length > 0){
+         result.push(trackName)
+	 }
+      } // for i
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: result});
+
+} // getTrackNames
+//----------------------------------------------------------------------------------------------------
+function removeTracksByName(msg)
+{
+   var self = this;
+   checkSignature(self, "removeTracksByName")
+
+   var trackNames = msg.payload;
+
+   var count = self.igvBrowser.trackViews.length;
+
+   for(var i=(count-1); i <= 0; i--){
+     var trackView = self.igvBrowser.trackViews[i];
+     if (trackView.track.name === trackName) {
+        self.igvBrowser.removeTrack(trackView.track);
+        } // if matched
+     } // for i
+
+} // removeTracksByName
+//----------------------------------------------------------------------------------------------------
+
 function addBedTrackFromDataFrame(msg)
 {
    var self = this;

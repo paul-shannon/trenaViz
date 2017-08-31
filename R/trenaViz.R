@@ -17,6 +17,10 @@ setGeneric ('setGraph', signature='obj', function (obj, graph=NULL) standardGene
 
 setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
 setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
+
+setGeneric('getTrackNames',        signature='obj', function(obj) standardGeneric('getTrackNames'))
+setGeneric('removeTracksByName',   signature='obj', function(obj, trackNames) standardGeneric('removeTracksByName'))
+
 setGeneric('addBedTrackFromDataFrame',  signature='obj',
                        function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray")
                        standardGeneric('addBedTrackFromDataFrame'))
@@ -109,6 +113,30 @@ setMethod('getGenomicRegion', 'trenaViz',
    function (obj) {
      payload <- ""
      send(obj, list(cmd="getGenomicRegion", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('getTrackNames', 'trenaViz',
+
+   function (obj) {
+     payload <- ""
+     send(obj, list(cmd="getTrackNames", callback="handleResponse", status="request", payload=payload))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('removeTracksByName', 'trenaViz',
+
+   function (obj, trackNames) {
+     payload <- trackNames
+     send(obj, list(cmd="removeTracksByName", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }

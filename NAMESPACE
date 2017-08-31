@@ -9,6 +9,8 @@ exportMethods (
    getGenomicRegion,
    selectNodes,
    getSelectedNodes,
+   getTrackNames,
+   removeTracksByName,
    addBedTrackFromDataFrame,
    addBedTrackFromHostedFile,
    addBedGraphTrackFromDataFrame
