@@ -13,7 +13,7 @@ runTests <- function()
   testPing()
   testIGV()
   testGraph()
-  testLoadTracks()
+  testLoadAndRemoveTracks()
 
   #closeWebSocket(tv)
 
@@ -31,6 +31,7 @@ testWindowTitle <- function()
 {
    printf("--- testWindowTitle")
    checkTrue(ready(tv))
+   setBrowserWindowTitle(tv, "trenaViz")
    checkEquals(getBrowserWindowTitle(tv), "trenaViz")
    setBrowserWindowTitle(tv, "new title");
    checkEquals(getBrowserWindowTitle(tv), "new title")
@@ -69,9 +70,11 @@ testGraph <- function()
 
 } # testGraph
 #--------------------------------------------------------------------------------
-testLoadTracks <- function()
+testLoadAndRemoveTracks <- function()
 {
-   printf("--- testLoadTracks")
+   printf("--- testLoadAndRemoveTracks")
+
+   raiseTab(tv, "IGV")
 
    setBrowserWindowTitle(tv, "test load tracks")
    checkEquals(getTrackNames(tv), "Gencode v24")
@@ -94,11 +97,13 @@ testLoadTracks <- function()
    addBedGraphTrackFromDataFrame(tv, "tbl.bedGraph", tbl.bedGraph, color="darkGreen",
                                  minValue=min(tbl.bedGraph$score), maxValue=max(tbl.bedGraph$score),
                                  displayMode="EXPANDED")
-   #addBedTrackFromHostedFile,
-   #addBedGraphTrackFromDataFrame
 
+   checkEquals(sort(getTrackNames(tv)), c("Gencode v24",  "tbl.bed", "tbl.bedGraph"))
+   Sys.sleep(3)
+   removeTracksByName(tv, c("tbl.bed", "tbl.bedGraph"))
+   checkEquals(getTrackNames(tv), "Gencode v24")
 
-} # testLoadTracks
+} # testLoadAndRemoveTracks
 #--------------------------------------------------------------------------------
 if(!interactive())
     runTests()

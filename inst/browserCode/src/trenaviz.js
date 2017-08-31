@@ -30,6 +30,7 @@ function addMessageHandlers()
    checkSignature(self, "addMessageHandlers");
 
    self.hub.addMessageHandler("ping",               respondToPing.bind(self));
+   self.hub.addMessageHandler("raiseTab",           raiseTab.bind(self));
    self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
    self.hub.addMessageHandler("setGraph",           setGraph.bind(self));
 
@@ -101,6 +102,31 @@ function handleWindowResize ()
 
 } // handleWindowResize
 //--------------------------------------------------------------------------------
+function raiseTab(msg)
+{
+  var displayedTabName = msg.payload;
+
+  var status = "success"  // be optimistic
+  var returnPayload = "";
+
+  switch(displayedTabName) {
+    case "IGV":
+       $('a[href="#igvOuterDiv"]').click();
+       break;
+    case "TRN":
+       $('a[href="#cyOuterDiv"]').click();
+       break;
+    default:
+       status = "error";
+       returnPayload = "unrecognized tab name: " + displayedTabName;
+    } // switch on displayedTabName
+
+  var return_msg = {cmd: msg.callback, status: status, callback: "", payload: returnPayload};
+
+  hub.send(return_msg);
+
+} // raiseTab
+//----------------------------------------------------------------------------------------------------
 function respondToPing (msg)
 {
    var self = this;
@@ -258,15 +284,23 @@ function removeTracksByName(msg)
    checkSignature(self, "removeTracksByName")
 
    var trackNames = msg.payload;
+   if(typeof(trackNames) == "string")
+      trackNames = [trackNames];
 
    var count = self.igvBrowser.trackViews.length;
 
-   for(var i=(count-1); i <= 0; i--){
+   for(var i=(count-1); i >= 0; i--){
      var trackView = self.igvBrowser.trackViews[i];
-     if (trackView.track.name === trackName) {
+     var trackViewName = trackView.track.name;
+     var matched = trackNames.indexOf(trackViewName) >= 0;
+     console.log(" is " + trackViewName + " in " + JSON.stringify(trackNames) + "? " + matched);
+     if (matched){
         self.igvBrowser.removeTrack(trackView.track);
         } // if matched
      } // for i
+
+   self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
 
 } // removeTracksByName
 //----------------------------------------------------------------------------------------------------

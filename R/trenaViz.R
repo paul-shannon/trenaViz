@@ -10,10 +10,11 @@ trenaVizBrowserFile <- system.file(package="trenaViz", "browserCode", "dist", "t
                             )
 
 #----------------------------------------------------------------------------------------------------
-setGeneric ('ping',  signature='obj', function (obj) standardGeneric ('ping'))
-setGeneric ('getSelection',  signature='obj', function (obj) standardGeneric ('getSelection'))
-setGeneric ('setGenome', signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
-setGeneric ('setGraph', signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
+setGeneric ('ping',         signature='obj', function (obj) standardGeneric ('ping'))
+setGeneric ('raiseTab',     signature='obj', function (obj, tabTitle) standardGeneric ('raiseTab'))
+setGeneric ('getSelection', signature='obj', function (obj) standardGeneric ('getSelection'))
+setGeneric ('setGenome',    signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
+setGeneric ('setGraph',     signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
 
 setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
 setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
@@ -66,6 +67,18 @@ setMethod('ping', 'trenaViz',
         }
      getBrowserResponse(obj)
      }) # ping
+
+#----------------------------------------------------------------------------------------------------
+setMethod('raiseTab', 'trenaViz',
+
+  function (obj, tabTitle) {
+     send(obj, list(cmd="raiseTab", callback="handleResponse", status="request", payload=tabTitle))
+     while (!browserResponseReady(obj)){
+        if(!obj@quiet) message(sprintf("plot waiting for browser response"));
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj)
+     }) # raiseTab
 
 #----------------------------------------------------------------------------------------------------
 setMethod('setGenome', 'trenaViz',
@@ -241,7 +254,7 @@ setMethod('getSelectedNodes', 'trenaViz',
 #----------------------------------------------------------------------------------------------------
 myQP <- function(queryString)
 {
-   printf("=== TReNA-Viz::myQP");
+   #printf("=== TReNA-Viz::myQP");
    #print(queryString)
      # for reasons not quite clear, the query string comes in with extra characters
      # following the expected filename:
@@ -269,11 +282,11 @@ myQP <- function(queryString)
 
    stopifnot(file.exists(filename))
 
-   printf("--- about to scan %s", filename);
+   #printf("--- about to scan %s", filename);
       # reconstitute linefeeds though collapsing file into one string, so json
       # structure is intact, and any "//" comment tokens only affect one line
    text <- paste(scan(filename, what=character(0), sep="\n", quiet=TRUE), collapse="\n")
-   printf("%d chars read from %s", nchar(text), filename);
+   #printf("%d chars read from %s", nchar(text), filename);
 
    return(text);
 

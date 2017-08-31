@@ -2,6 +2,7 @@ exportClasses(trenaViz)
 
 exportMethods (
    ping,
+   raiseTab,
    getSelection,
    setGenome,
    setGraph,
