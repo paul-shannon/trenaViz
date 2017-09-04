@@ -1,6 +1,8 @@
 exportClasses(trenaViz)
 
 exportMethods (
+   buildMultiModelGraph,
+   addGeneModelLayout,
    ping,
    raiseTab,
    getSelection,

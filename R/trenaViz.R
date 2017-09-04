@@ -10,11 +10,14 @@ trenaVizBrowserFile <- system.file(package="trenaViz", "browserCode", "dist", "t
                             )
 
 #----------------------------------------------------------------------------------------------------
-setGeneric ('ping',         signature='obj', function (obj) standardGeneric ('ping'))
-setGeneric ('raiseTab',     signature='obj', function (obj, tabTitle) standardGeneric ('raiseTab'))
-setGeneric ('getSelection', signature='obj', function (obj) standardGeneric ('getSelection'))
-setGeneric ('setGenome',    signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
-setGeneric ('setGraph',     signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
+setGeneric('buildMultiModelGraph', signature='obj', function(obj, targetGene, models)
+                   standardGeneric('buildMultiModelGraph'))
+setGeneric('addGeneModelLayout', signature='obj', function(obj, g, xPos.span=1500) standardGeneric('addGeneModelLayout'))
+setGeneric('ping',         signature='obj', function (obj) standardGeneric ('ping'))
+setGeneric('raiseTab',     signature='obj', function (obj, tabTitle) standardGeneric ('raiseTab'))
+setGeneric('getSelection', signature='obj', function (obj) standardGeneric ('getSelection'))
+setGeneric('setGenome',    signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
+setGeneric('setGraph',     signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
 
 setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
 setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
@@ -24,10 +27,10 @@ setGeneric('removeTracksByName',   signature='obj', function(obj, trackNames) st
 
 setGeneric('addBedTrackFromDataFrame',  signature='obj',
                        function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray")
-                       standardGeneric('addBedTrackFromDataFrame'))
+                   standardGeneric('addBedTrackFromDataFrame'))
 setGeneric('addBedTrackFromHostedFile',   signature='obj',
                       function(obj, trackName, uri, index.uri=NA, displayMode="COLLAPSED", color="lightgray")
-                      standardGeneric('addBedTrackFromHostedFile'))
+                   standardGeneric('addBedTrackFromHostedFile'))
 setGeneric('addBedGraphTrackFromDataFrame', signature='obj',
                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED",minValue=NA, maxValue=NA, color)
                       standardGeneric('addBedGraphTrackFromDataFrame'))
@@ -36,6 +39,165 @@ setGeneric('selectNodes',         signature='obj', function(obj, nodeIDs) standa
 setGeneric('getSelectedNodes',    signature='obj', function(obj) standardGeneric('getSelectedNodes'))
 
 #----------------------------------------------------------------------------------------------------
+setMethod('buildMultiModelGraph', 'trenaViz',
+
+  function (obj, targetGene, models){
+
+    g <- graphNEL(edgemode = "directed")
+    model.names <- names(models)
+
+    node.attribute.specs <- list(type="undefined",
+                                 label="default node label",
+                                 distance=0,
+                                 pearson=0,
+                                 randomForest=0,
+                                 pcaMax=0,
+                                 concordance=0,
+                                 betaLasso=0,
+                                 motif="",
+                                 xPos=0,
+                                 yPos=0)
+    edge.attribute.spec <- list(edgeType="undefined")
+    attribute.classes <- c("", model.names)  # "" (no prefix) is the currently displayed set of attibutes
+
+      # create current version of these attributes, and then
+      # per-model versions, which get mapped to current
+      # in response to user's interactive choice on the cyjs user interface
+      # the "current version" is, e.g., "distance".
+      # per-model ("wt" and "mut" versions) become "wt.distance" and "mut.distance"
+      # and are used by copying e.g. all wt.xxx attributes into the current (non-prefixed)
+      # attribute, upon which the cyjs style is defined
+
+    for(class.name in attribute.classes){
+       class.name.prefix <- class.name  # with possible "." appended, permits standard and model-specific attributes
+       if(nchar(class.name) > 0)
+          class.name.prefix <- sprintf("%s.", class.name)
+       noa.names.without.prefix <- names(node.attribute.specs)
+       noa.names <- sprintf("%s%s", class.name.prefix, noa.names.without.prefix)
+       noa.count <- length(node.attribute.specs)
+       for(i in 1:noa.count){
+          nodeDataDefaults(g, attr=noa.names[i]) <- node.attribute.specs[[noa.names.without.prefix[i]]]
+          }
+       } # for class
+
+    edgeDataDefaults(g, attr = "edgeType") <- "undefined"
+
+    tfs <- c()
+    regulatoryRegions <- c()
+
+    for(model in models){  # collect all the tf and regulatory region nodes
+       tbl.model <- model$tbl.geneModel
+       tfs <- unique(c(tfs, tbl.model$gene))
+       tbl.reg <- model$tbl.regulatoryRegions
+       regulatoryRegions <- unique(c(regulatoryRegions, tbl.reg$id))
+       } # for model
+
+    printf("tfs: %d   regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
+
+    all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
+    g <- addNode(all.nodes, g)
+
+    printf("--- about to call nodeData")
+    nodeData(g, targetGene, "type") <- "targetGene"
+    nodeData(g, tfs, "type")         <- "TF"
+    nodeData(g, regulatoryRegions, "type")  <- "regulatoryRegion"
+    nodeData(g, all.nodes, "label")  <- all.nodes
+
+      # add edges, edge attribute, and the constant attributes for all of the regulatoryRegion nodes
+
+    for(model in models){
+       tfs <- model$tbl.regulatoryRegions$tf
+       regRegions <- model$tbl.regulatoryRegions$id
+       suppressWarnings(g <- addEdge(tfs, regRegions, g))
+       edgeData(g,  tfs, regRegions, "edgeType") <- "bindsTo"
+       suppressWarnings(g <- addEdge(regRegions, targetGene, g))
+       edgeData(g, regRegions, targetGene, "edgeType") <- "regulatorySiteFor"
+       nodeData(g, tbl.reg$id, "label") <- tbl.reg$motifName
+       nodeData(g, tbl.reg$id, "distance") <- tbl.reg$distance.from.tss
+       nodeData(g, tbl.reg$id, "motif") <- tbl.reg$motifName
+       } # for model
+
+      # now copy in the first model's tf node data
+
+    tbl.model <- models[[1]]$tbl.geneModel
+    nodeData(g, tbl.model$gene, attr="randomForest") <- tbl.model$rf.score
+    nodeData(g, tbl.model$gene, attr="pearson") <- tbl.model$pearson.coeff
+
+     # now copy in each of the model's tf node data in turn
+    model.names <- names(models)
+    for(model.name in model.names){
+       tbl.model <- models[[model.name]]$tbl.geneModel
+       noa.name <- sprintf("%s.%s", model.name, "randomForest")
+       nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$rf.score
+       noa.name <- sprintf("%s.%s", model.name, "pearson")
+       nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$pearson.coeff
+      } # for model.name
+
+    g
+
+    }) # buildMultiModelGraph
+#----------------------------------------------------------------------------------------------------
+setMethod('addGeneModelLayout', 'trenaViz',
+
+  function (obj, g, xPos.span=1500){
+    printf("--- addGeneModelLayout")
+    all.distances <- sort(unique(unlist(nodeData(g, attr='distance'), use.names=FALSE)))
+    print(all.distances)
+
+    fp.nodes <- nodes(g)[which(unlist(nodeData(g, attr="type"), use.names=FALSE) == "regulatoryRegion")]
+    tf.nodes <- nodes(g)[which(unlist(nodeData(g, attr="type"), use.names=FALSE) == "TF")]
+    targetGene.nodes <- nodes(g)[which(unlist(nodeData(g, attr="type"), use.names=FALSE) == "targetGene")]
+
+     # add in a zero in case all of the footprints are up or downstream of the 0 coordinate, the TSS
+    span.endpoints <- range(c(0, as.numeric(nodeData(g, fp.nodes, attr="distance"))))
+    span <- max(span.endpoints) - min(span.endpoints)
+    footprintLayoutFactor <- 1
+    printf("initial:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
+
+    footprintLayoutFactor <- xPos.span/span
+
+    #if(span < 600)  #
+    #   footprintLayoutFactor <- 600/span
+    #if(span > 1000)
+    #   footprintLayoutFactor <- span/1000
+
+    printf("corrected:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
+
+    xPos <- as.numeric(nodeData(g, fp.nodes, attr="distance")) * footprintLayoutFactor
+    yPos <- 0
+    nodeData(g, fp.nodes, "xPos") <- xPos
+    nodeData(g, fp.nodes, "yPos") <- yPos
+
+    adjusted.span.endpoints <- range(c(0, as.numeric(nodeData(g, fp.nodes, attr="xPos"))))
+    printf("raw span of footprints: %d   footprintLayoutFactor: %f  new span: %8.0f",
+           span, footprintLayoutFactor, abs(max(adjusted.span.endpoints) - min(adjusted.span.endpoints)))
+
+    tfs <- names(which(nodeData(g, attr="type") == "TF"))
+
+    for(tf in tfs){
+       footprint.neighbors <- edges(g)[[tf]]
+       if(length(footprint.neighbors) > 0){
+          footprint.positions <- as.integer(nodeData(g, footprint.neighbors, attr="xPos"))
+          new.xPos <- mean(footprint.positions)
+          if(is.na(new.xPos)) browser()
+          if(is.nan(new.xPos)) browser()
+          #printf("%8s: %5d", tf, new.xPos)
+          }
+       else{
+          new.xPos <- 0
+          }
+       nodeData(g, tf, "yPos") <- sample(300:1200, 1)
+       nodeData(g, tf, "xPos") <- new.xPos
+       } # for tf
+
+    nodeData(g, targetGene.nodes, "xPos") <- 0
+    nodeData(g, targetGene.nodes, "yPos") <- -200
+
+    g
+
+    }) # addGeneModelLayout
+
+#------------------------------------------------------------------------------------------------------------------------
 setupMessageHandlers <- function()
 {
    addRMessageHandler("handleResponse", "handleResponse")
