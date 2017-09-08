@@ -17,7 +17,8 @@ setGeneric('ping',         signature='obj', function (obj) standardGeneric ('pin
 setGeneric('raiseTab',     signature='obj', function (obj, tabTitle) standardGeneric ('raiseTab'))
 setGeneric('getSelection', signature='obj', function (obj) standardGeneric ('getSelection'))
 setGeneric('setGenome',    signature='obj', function (obj, genomeName) standardGeneric ('setGenome'))
-setGeneric('setGraph',     signature='obj', function (obj, graph=NULL) standardGeneric ('setGraph'))
+setGeneric('setGraph',     signature='obj', function (obj, graph=NULL, modelNames=NA) standardGeneric ('setGraph'))
+setGeneric('setStyle',     signature='obj', function(obj, filename) standardGeneric ('setStyle'))
 
 setGeneric('showGenomicRegion',   signature='obj', function(obj, regionString) standardGeneric('showGenomicRegion'))
 setGeneric('getGenomicRegion',    signature='obj', function(obj) standardGeneric('getGenomicRegion'))
@@ -37,6 +38,9 @@ setGeneric('addBedGraphTrackFromDataFrame', signature='obj',
 
 setGeneric('selectNodes',         signature='obj', function(obj, nodeIDs) standardGeneric('selectNodes'))
 setGeneric('getSelectedNodes',    signature='obj', function(obj) standardGeneric('getSelectedNodes'))
+
+setGeneric('fit',                 signature='obj', function(obj, margin=50) standardGeneric('fit'))
+setGeneric('fitSelected',         signature='obj', function(obj, margin=50) standardGeneric('fitSelected'))
 
 #----------------------------------------------------------------------------------------------------
 setMethod('buildMultiModelGraph', 'trenaViz',
@@ -97,7 +101,6 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
     g <- addNode(all.nodes, g)
 
-    printf("--- about to call nodeData")
     nodeData(g, targetGene, "type") <- "targetGene"
     nodeData(g, tfs, "type")         <- "TF"
     nodeData(g, regulatoryRegions, "type")  <- "regulatoryRegion"
@@ -106,13 +109,15 @@ setMethod('buildMultiModelGraph', 'trenaViz',
       # add edges, edge attribute, and the constant attributes for all of the regulatoryRegion nodes
 
     for(model in models){
-       tfs <- model$tbl.regulatoryRegions$tf
+       tfs <- model$tbl.regulatoryRegions$geneSymbol
        regRegions <- model$tbl.regulatoryRegions$id
        suppressWarnings(g <- addEdge(tfs, regRegions, g))
        edgeData(g,  tfs, regRegions, "edgeType") <- "bindsTo"
        suppressWarnings(g <- addEdge(regRegions, targetGene, g))
        edgeData(g, regRegions, targetGene, "edgeType") <- "regulatorySiteFor"
-       nodeData(g, tbl.reg$id, "label") <- tbl.reg$motifName
+       tokensList <- strsplit(tbl.reg$motifName, "-")
+       motif.labels <- unlist(lapply(tokensList, function(tokens) tokens[length(tokens)]))
+       nodeData(g, tbl.reg$id, "label") <- motif.labels
        nodeData(g, tbl.reg$id, "distance") <- tbl.reg$distance.from.tss
        nodeData(g, tbl.reg$id, "motif") <- tbl.reg$motifName
        } # for model
@@ -179,8 +184,8 @@ setMethod('addGeneModelLayout', 'trenaViz',
        if(length(footprint.neighbors) > 0){
           footprint.positions <- as.integer(nodeData(g, footprint.neighbors, attr="xPos"))
           new.xPos <- mean(footprint.positions)
-          if(is.na(new.xPos)) browser()
-          if(is.nan(new.xPos)) browser()
+          #if(is.na(new.xPos)) browser()
+          #if(is.nan(new.xPos)) browser()
           #printf("%8s: %5d", tf, new.xPos)
           }
        else{
@@ -258,15 +263,37 @@ setMethod('setGenome', 'trenaViz',
 #----------------------------------------------------------------------------------------------------
 setMethod('setGraph', 'trenaViz',
 
-  function (obj, graph=NULL) {
+  function (obj, graph=NULL, modelNames=NA) {
      printf("trenaViz::setGraph");
-     if(is.null(graph))
-       graph <- graphNEL()
-     payload <- ""
+     print(graph)
+     printf("--- converting graph to JSON");
+     g.json <- .graphToJSON(graph)
+     printf("--- conversion complete");
+     #g.json <- paste("network = ", .graphToJSON(graph))
+     #g.json <- paste("network = ", as.character(biocGraphToCytoscapeJSON(graph)))
+     filename <- "g.json"
+     payload <- list(filename=filename, modelNames=modelNames)
+     printf("--- about to write file 'g.json' with %d characters", nchar(g.json))
+     printf("--- first few characters: %s", substr(g.json, 1, 20))
+     write(g.json, file=filename)
+     printf("--- file writing complete")
      send(obj, list(cmd="setGraph", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
+     printf("browserResponseReady")
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('setStyle', 'trenaViz',
+
+  function (obj, filename) {
+     send(obj, list(cmd="setStyle", callback="handleResponse", status="request", payload=filename))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -414,6 +441,97 @@ setMethod('getSelectedNodes', 'trenaViz',
      })
 
 #----------------------------------------------------------------------------------------------------
+setMethod('fit', 'trenaViz',
+
+  function (obj, margin=50) {
+     send(obj, list(cmd="fit", callback="handleResponse", status="request", payload=margin))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+setMethod('fitSelected', 'trenaViz',
+
+  function (obj, margin=50) {
+     send(obj, list(cmd="fitSelected", callback="handleResponse", status="request", payload=margin))
+     while (!browserResponseReady(obj)){
+        Sys.sleep(.1)
+        }
+     getBrowserResponse(obj);
+     })
+
+#----------------------------------------------------------------------------------------------------
+# {elements: [
+#    {data: {id: 'a', score:5}, position: {x: 100, y: 200}},
+#    {data: {id: 'b', score:100}, position: {x: 200, y: 200}},
+#    {data: {id: 'e1', source: 'a', target: 'b'}}
+#    ],  // elements array
+# layout: { name: 'preset'},
+# style: [{selector: 'node', style: {'content': 'data(id)'}}]
+# }
+.graphToJSON <- function(g)
+{
+    x <- '{"elements": [';
+    nodes <- nodes(g)
+    edgeNames <- edgeNames(g)
+    edges <- strsplit(edgeNames, "~")  # a list of pairs
+    edgeNames <- sub("~", "->", edgeNames)
+    names(edges) <- edgeNames
+
+    noa.names <- names(nodeDataDefaults(g))
+    eda.names <- names(edgeDataDefaults(g))
+    nodeCount <- length(nodes)
+    edgeCount <- length(edgeNames)
+
+    for(n in 1:nodeCount){
+       node <- nodes[n]
+       x <- sprintf('%s {"data": {"id": "%s"', x, node);
+       nodeAttributeCount <- length(noa.names)
+       for(i in seq_len(nodeAttributeCount)){
+          noa.name <- noa.names[i];
+          value <-  nodeData(g, node, noa.name)[[1]]
+          if(is.numeric(value))
+             x <- sprintf('%s, "%s": %s', x, noa.name, value)
+          else
+             x <- sprintf('%s, "%s": "%s"', x, noa.name, value)
+          } # for i
+       x <- sprintf('%s}', x)     # close off this node data element
+       if(all(c("xPos", "yPos") %in% noa.names)){
+           xPos <- as.integer(nodeData(g, node, "xPos"))
+           yPos <- as.integer(nodeData(g, node, "yPos"))
+           x <- sprintf('%s, "position": {"x": %d, "y": %d}', x, xPos, yPos)
+           } # add position element
+       x <- sprintf('%s}', x)     # close off this node data element
+       if(n != nodeCount)
+           x <- sprintf("%s,", x)  # another node coming, add a comma
+       } # for n
+
+    for(e in seq_len(edgeCount)) {
+       edgeName <- edgeNames[e]
+       edge <- edges[[e]]
+       sourceNode <- edge[[1]]
+       targetNode <- edge[[2]]
+       x <- sprintf('%s, {"data": {"id": "%s", "source": "%s", "target": "%s"', x, edgeName, sourceNode, targetNode);
+       edgeAttributeCount <- length(eda.names)
+       for(i in seq_len(edgeAttributeCount)){
+          eda.name <- eda.names[i];
+          value <-  edgeData(g, sourceNode, targetNode, eda.name)[[1]]
+          if(is.numeric(value))
+             x <- sprintf('%s, "%s": %s', x, eda.name, value)
+          else
+             x <- sprintf('%s, "%s": "%s"', x, eda.name, value)
+          } # for each edgeAttribute
+       x <- sprintf('%s}}', x)     # close off this edge data element
+       } # for e
+
+    x <- sprintf("%s]}", x)
+
+    x
+
+} # .graphToJSON
+#------------------------------------------------------------------------------------------------------------------------
 myQP <- function(queryString)
 {
    #printf("=== TReNA-Viz::myQP");

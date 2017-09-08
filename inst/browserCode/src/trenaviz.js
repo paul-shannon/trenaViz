@@ -33,6 +33,7 @@ function addMessageHandlers()
    self.hub.addMessageHandler("raiseTab",           raiseTab.bind(self));
    self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
    self.hub.addMessageHandler("setGraph",           setGraph.bind(self));
+   self.hub.addMessageHandler("setStyle",          setStyle.bind(self));
 
    self.hub.addMessageHandler("getTrackNames",      getTrackNames.bind(self));
    self.hub.addMessageHandler("removeTracksByName", removeTracksByName.bind(self));
@@ -42,6 +43,9 @@ function addMessageHandlers()
 
    self.hub.addMessageHandler("getSelectedNodes",   getSelectedNodes.bind(self));
    self.hub.addMessageHandler("selectNodes",        selectNodes.bind(self));
+
+   self.hub.addMessageHandler("fit",                fit.bind(self));
+   self.hub.addMessageHandler("fitSelected",        fitSelected.bind(self));
 
    self.hub.addMessageHandler("addBedTrackFromDataFrame",  addBedTrackFromDataFrame.bind(self));
    self.hub.addMessageHandler("addBedTrackFromHostedFile", addBedTrackFromHostedFile.bind(self));
@@ -456,6 +460,40 @@ function getSelectedNodes(msg)
 
 } // getSelectedNodes
 //---------------------------------------------------------------------------------------------------
+function fit(msg)
+{
+   var self = this;
+   checkSignature(self, "fit")
+
+   var margin = msg.payload;
+   self.cyjs.fit(margin)
+   hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
+
+} // fit
+//----------------------------------------------------------------------------------------------------
+function fitSelected(msg)
+{
+   var self = this;
+   checkSignature(self, "fit")
+
+   var selectedNodes = self.cyjs.filter('node:selected');
+   var margin = msg.payload;
+
+   if(selectedNodes.length == 0){
+     status = "failure";
+     payload = "no nodes currently selected"
+     }
+  else{
+    console.log("fitSelected, with margin " + margin);
+    self.cyjs.fit(selectedNodes, margin)
+    status = "success";
+    payload = "";
+    }
+
+  hub.send({cmd: msg.callback, status: status, callback: "", payload: payload});
+
+} // fit
+//----------------------------------------------------------------------------------------------------
 function setGraph(msg)
 {
      // soon: graphs = msg.payload, though more complex, since names
@@ -469,6 +507,9 @@ function setGraph(msg)
    $('a[href="#cyOuterDiv"]').click();
    self.handleWindowResize();
    self.cyjs = initializeTrnCytoscape();
+   var temporaryFileName = msg.payload.filename;
+   var modelNames = msg.payload.modelNames;
+   var status = readNetworkFromFile(temporaryFileName, self.cyjs)
    initializeTrnCytoscapeButtons(self);
 
    setTimeout(function(){
@@ -480,6 +521,22 @@ function setGraph(msg)
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // setGraph
+//----------------------------------------------------------------------------------------------------
+function setStyle(msg)
+{
+  console.log("=== entering setStyle");
+
+   var self = this;
+   checkSignature(self, "setGraph")
+
+   var filename = msg.payload;
+   console.log("setStyle: '" + filename + "'");
+   loadStyleFile(filename, self.cyjs);
+
+   var return_msg = {cmd: msg.callback, status: "success", callback: "", payload: ""};
+   hub.send(return_msg);
+
+} // setStyle
 //----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscape()
 {
@@ -507,6 +564,45 @@ function initializeTrnCytoscape()
     return(cy);
 
 } // initializeTrnCytoscape
+//----------------------------------------------------------------------------------------------------
+function readNetworkFromFile(filename, targetCy)
+{
+   var s = window.location.href + "?" + filename;
+   fetch(s)
+      .then(function(responseObj){
+          console.log("fetch in action");
+          return responseObj.json();
+          })
+     .then(function(j){
+         targetCy.json(j);
+         return "success";
+         });
+
+    return "SUCCESS";
+
+} // readNetworkFromFile
+//----------------------------------------------------------------------------------------------------
+// expected file contents:  vizmap = [{selector:"node",css: {...
+function loadStyleFile(filename, cyTarget)
+{
+   console.log("trenaViz.loadStyleFile, filename: " + filename);
+
+   var s = window.location.href + "?" + filename;
+   console.log("=== about to getScript on " + s);
+
+   $.getScript(s)
+     .done(function(script, textStatus) {
+        console.log(textStatus);
+        //console.log("style elements " + layout.length);
+        cyTarget.style(vizmap);
+       })
+    .fail(function( jqxhr, settings, exception ) {
+       console.log("getScript error trying to read " + filename);
+       console.log("exception: ");
+       console.log(exception);
+       });
+
+} // loadStyle
 //----------------------------------------------------------------------------------------------------
 function initializeTrnCytoscapeButtons(self)
 {
