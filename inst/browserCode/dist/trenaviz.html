@@ -31696,7 +31696,7 @@ function addMessageHandlers()
    self.hub.addMessageHandler("raiseTab",           raiseTab.bind(self));
    self.hub.addMessageHandler("setGenome",          setGenome.bind(self));
    self.hub.addMessageHandler("setGraph",           setGraph.bind(self));
-   self.hub.addMessageHandler("setStyle",          setStyle.bind(self));
+   self.hub.addMessageHandler("setStyle",           setStyle.bind(self));
 
    self.hub.addMessageHandler("getTrackNames",      getTrackNames.bind(self));
    self.hub.addMessageHandler("removeTracksByName", removeTracksByName.bind(self));
@@ -31844,8 +31844,8 @@ function initializeIGV(self, genomeName)
                  },
      tracks: [
         {name: 'Gencode v24',
-         //url: "http://pshannon.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz",
-         //indexURL: "http://pshannon.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz.tbi",
+         //url: "http://trena.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz",
+         //indexURL: "http://trena.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz.tbi",
          url: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz",
          indexURL: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz.tbi",
          format: 'gtf',
@@ -31863,13 +31863,13 @@ function initializeIGV(self, genomeName)
          minimumBases: 5,
          showRuler: true,
          reference: {id: "mm10",
-                     fastaURL: "http://pshannon.systemsbiology.net/mm10/GRCm38.primary_assembly.genome.fa",
-                     cytobandURL: "http://pshannon.systemsbiology.net/mm10/cytoBand.txt"
+                     fastaURL: "http://trena.systemsbiology.net/mm10/GRCm38.primary_assembly.genome.fa",
+                     cytobandURL: "http://trena.systemsbiology.net/mm10/cytoBand.txt"
                      },
          tracks: [
             {name: 'Gencode vM14',
-             url: "http://pshannon.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz",
-             indexURL: "http://pshannon.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz.tbi",
+             url: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz",
+             indexURL: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz.tbi",
              format: 'gtf',
              visibilityWindow: 2000000,
              displayMode: 'EXPANDED'
@@ -32172,6 +32172,13 @@ function setGraph(msg)
    self.cyjs = initializeTrnCytoscape();
    var temporaryFileName = msg.payload.filename;
    var modelNames = msg.payload.modelNames;
+   console.log("modelNames: ");
+   console.log(modelNames)
+   if(modelNames.length > 1){
+     createModelNamesMenu(self, modelNames);
+     }
+
+
    var status = readNetworkFromFile(temporaryFileName, self.cyjs)
    initializeTrnCytoscapeButtons(self);
 
@@ -32184,6 +32191,57 @@ function setGraph(msg)
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
 
 } // setGraph
+//----------------------------------------------------------------------------------------------------
+function createModelNamesMenu(self, modelNames)
+{
+   if(typeof(modelNames) == "string"){
+      modelNames = [modelNames];
+      }
+
+   if(modelNames.length < 1){
+     return;
+     }
+
+  $("#cyModelSelector").remove()
+
+   var html = "<select id='cyModelSelector'>"
+   for(var i=0; i < modelNames.length; i++){
+      html += "<option value='" + modelNames[i] + "'> " + modelNames[i]  + "</option>";
+      } // for i
+   html += "</select>"
+
+   $("#cyMenubarDiv").append(html);
+   $("#cyModelSelector").change(function(){
+     var modelName =$(this).find("option:selected").val();
+       self.nextCyModel(self, modelName);
+     });
+
+    self.nextCyModel(self, modelNames[0]);
+
+} // createModelNamesMenu
+//----------------------------------------------------------------------------------------------------
+// not sure why bind does not work on this function, thus necessitating explicit passing of
+// this as self.  (pshannon 9 sep 2017)
+function nextCyModel(self, modelName)
+{
+   console.log("--- nextCyModel: " + modelName);
+   console.log(self)
+   checkSignature(self, "nextCyModel")
+
+   self.cyjs.nodes().show()
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"randomForest": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson": 0})})
+
+   var noaName = modelName + "." + "randomForest";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"randomForest":  node.data(noaName)})})
+
+   noaName = modelName + "." + "pearson";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson":       node.data(noaName)})})
+
+     // now hide all the 0 randomForest TF nodes
+   self.cyjs.nodes().filter(function(node){return(node.data("randomForest") == 0 && node.data("type") == "TF")}).hide()
+
+} // nextCyModel
 //----------------------------------------------------------------------------------------------------
 function setStyle(msg)
 {
@@ -32291,7 +32349,7 @@ function initializeTrnCytoscapeButtons(self)
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
-
+    nextCyModel: nextCyModel.bind(this),
     hub: hub,
     cyjs: null,
     igvBrowser: null,

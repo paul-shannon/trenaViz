@@ -137,6 +137,44 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 
 } # test_buildMultiModelGraph_oneModel
 #------------------------------------------------------------------------------------------------------------------------
+test_buildMultiModelGraph_twoModels <- function(display=FALSE)
+{
+   printf("--- test_buildMultiModelGraph_twoModels")
+
+   load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
+
+     # copy and modify the gene model slightly but noticeably: remove the large repressor, ARNT2
+   tbl.geneModel.2 <- subset(tbl.geneModel.strong, gene != "ARNT2")
+
+   models <- list(tcf7=list(tbl.regulatoryRegions=tbl.regulatoryRegions.strong, tbl.geneModel=tbl.geneModel.strong),
+                  arnt2.deleted=list(tbl.regulatoryRegions=tbl.regulatoryRegions.strong, tbl.geneModel=tbl.geneModel.2))
+
+   targetGene <- "TCF7"
+
+   g <- buildMultiModelGraph(tv, targetGene, models)
+   nodesInGraph <- nodes(g)
+   regionNodes <- unique(models[[1]]$tbl.regulatoryRegions$id)
+   tfNodes <- unique(models[[1]]$tbl.regulatoryRegions$geneSymbol)
+   checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
+   tbl.reg <- models[[1]]$tbl.regulatoryRegions
+   checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
+
+   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
+   max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
+   checkEquals(abs(max.xPos - min.xPos), 1500)
+
+   if(display){
+     browser()
+     setGraph(tv, g.lo, names(models))
+     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     Sys.sleep(3); fit(tv)
+     browser()
+     xyz <- 99
+     }
+
+} # test_buildMultiModelGraph_twoModels
+#------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_fiveModels")
