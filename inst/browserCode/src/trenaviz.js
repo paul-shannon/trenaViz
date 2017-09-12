@@ -297,7 +297,7 @@ function removeTracksByName(msg)
      var trackView = self.igvBrowser.trackViews[i];
      var trackViewName = trackView.track.name;
      var matched = trackNames.indexOf(trackViewName) >= 0;
-     console.log(" is " + trackViewName + " in " + JSON.stringify(trackNames) + "? " + matched);
+     //console.log(" is " + trackViewName + " in " + JSON.stringify(trackNames) + "? " + matched);
      if (matched){
         self.igvBrowser.removeTrack(trackView.track);
         } // if matched
@@ -308,7 +308,6 @@ function removeTracksByName(msg)
 
 } // removeTracksByName
 //----------------------------------------------------------------------------------------------------
-
 function addBedTrackFromDataFrame(msg)
 {
    var self = this;
@@ -577,6 +576,13 @@ function nextCyModel(self, modelName)
 
      // now hide all the 0 randomForest TF nodes
    self.cyjs.nodes().filter(function(node){return(node.data("randomForest") == 0 && node.data("type") == "TF")}).hide()
+
+     // transfer the "motifInModel" node attribute
+   noaName = modelName + "." + "motifInModel";
+   self.cyjs.nodes("[type='regulatoryRegion']").map(function(node){node.data({"motifInModel": node.data(noaName)})})
+
+    self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
+						   node.data("type") == "regulatoryRegion")}).hide()
 
 } // nextCyModel
 //----------------------------------------------------------------------------------------------------

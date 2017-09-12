@@ -4,7 +4,8 @@ library(trenaViz)
 printf <- function(...) print(noquote(sprintf(...)))
 #--------------------------------------------------------------------------------
 PORT.RANGE <- 8000:8020
-tv <- trenaViz(PORT.RANGE, quiet=TRUE);
+if(!exists("tv"))
+   tv <- trenaViz(PORT.RANGE, quiet=TRUE);
 #--------------------------------------------------------------------------------
 runTests <- function()
 {
@@ -12,8 +13,10 @@ runTests <- function()
   testWindowTitle()
   testPing()
   testIGV()
-  testGraph()
+  #testGraph()
   testLoadAndRemoveTracks()
+  test_buildMultiModelGraph_oneModel()
+  test_buildMultiModelGraph_twoModels()
 
   #closeWebSocket(tv)
 
@@ -110,15 +113,15 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    printf("--- test_buildMultiModelGraph_oneModel")
 
    load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
-   models <- list(tcf7=list(tbl.regulatoryRegions=tbl.regulatoryRegions.strong, tbl.geneModel=tbl.geneModel.strong))
+   models <- list(tcf7=list(regions=tbl.regulatoryRegions.strong, model=tbl.geneModel.strong))
    targetGene <- "TCF7"
 
    g <- buildMultiModelGraph(tv, targetGene, models)
    nodesInGraph <- nodes(g)
-   regionNodes <- unique(models[[1]]$tbl.regulatoryRegions$id)
-   tfNodes <- unique(models[[1]]$tbl.regulatoryRegions$geneSymbol)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$geneSymbol)
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
-   tbl.reg <- models[[1]]$tbl.regulatoryRegions
+   tbl.reg <- models[[1]]$regions
    checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
 
    g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
@@ -145,19 +148,40 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
      # copy and modify the gene model slightly but noticeably: remove the large repressor, ARNT2
    tbl.geneModel.2 <- subset(tbl.geneModel.strong, gene != "ARNT2")
+   corresponding.motifs <- grep("ARNT2", tbl.regulatoryRegions.strong$geneSymbol)
+   stopifnot(length(corresponding.motifs) >= 1)
+   tbl.regulatoryRegions.strong.2 <- tbl.regulatoryRegions.strong[-corresponding.motifs,]
 
-   models <- list(tcf7=list(tbl.regulatoryRegions=tbl.regulatoryRegions.strong, tbl.geneModel=tbl.geneModel.strong),
-                  arnt2.deleted=list(tbl.regulatoryRegions=tbl.regulatoryRegions.strong, tbl.geneModel=tbl.geneModel.2))
+   models <- list(tcf7=list(regions=tbl.regulatoryRegions.strong,
+                            model=tbl.geneModel.strong),
+                  arnt2.deleted=list(regions=tbl.regulatoryRegions.strong.2,
+                                     model=tbl.geneModel.2))
 
    targetGene <- "TCF7"
 
    g <- buildMultiModelGraph(tv, targetGene, models)
    nodesInGraph <- nodes(g)
-   regionNodes <- unique(models[[1]]$tbl.regulatoryRegions$id)
-   tfNodes <- unique(models[[1]]$tbl.regulatoryRegions$geneSymbol)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$geneSymbol)
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
-   tbl.reg <- models[[1]]$tbl.regulatoryRegions
+   tbl.reg <- models[[1]]$regions
    checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
+
+
+      #--------------------------------------------------------------------------------
+      # has the single ARNT2-related motif, Mmusculus-jaspar2016-Ahr::Arnt-MA0006.1
+      # been marked as in model 1, but absent from model 2?
+      #--------------------------------------------------------------------------------
+
+   checkEquals(as.list(table(as.logical(nodeData(g, attr="arnt2.deleted.motifInModel"))))$`TRUE`,  51)
+   checkEquals(as.list(table(as.logical(nodeData(g, attr="arnt2.deleted.motifInModel"))))$`FALSE`, 1)
+
+   arnt2.motif.node <- "TCF7.fp.upstream.000410.Mmusculus-jaspar2016-Ahr::Arnt-MA0006.1"
+   checkEquals(nodeData(g, attr="arnt2.deleted.motifInModel", n=arnt2.motif.node)[[1]], FALSE)
+
+      # the tcf7 model, however, includes all motifs:
+
+   checkTrue(all(as.logical(nodeData(g, attr="tcf7.motifInModel"))))
 
    g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
@@ -165,7 +189,6 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
    checkEquals(abs(max.xPos - min.xPos), 1500)
 
    if(display){
-     browser()
      setGraph(tv, g.lo, names(models))
      setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
@@ -207,11 +230,11 @@ test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
    tbl.geneModel.rf1 <- subset(tbl.geneModel, randomForest > 1)
    tbl.regulatoryRegions.rf1 <- subset(tbl.regulatoryRegions, tf %in% tbl.geneModel.rf1$tf)
 
-   models <- list(rf01=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf1,  tbl.geneModel=tbl.geneModel.rf1),
-                  rf02=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf2,  tbl.geneModel=tbl.geneModel.rf2),
-                  rf03=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf3,  tbl.geneModel=tbl.geneModel.rf3),
-                  rf05=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf5,  tbl.geneModel=tbl.geneModel.rf5),
-                  rf10=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf10, tbl.geneModel=tbl.geneModel.rf10)
+   models <- list(rf01=list(regions=tbl.regulatoryRegions.rf1,  model=tbl.geneModel.rf1),
+                  rf02=list(regions=tbl.regulatoryRegions.rf2,  model=tbl.geneModel.rf2),
+                  rf03=list(regions=tbl.regulatoryRegions.rf3,  model=tbl.geneModel.rf3),
+                  rf05=list(regions=tbl.regulatoryRegions.rf5,  model=tbl.geneModel.rf5),
+                  rf10=list(regions=tbl.regulatoryRegions.rf10, model=tbl.geneModel.rf10)
                   )
 
    #save(models, file="testModel.RData")
@@ -219,10 +242,10 @@ test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
 
    g <- buildMultiModelGraph(prep, models)
    nodesInGraph <- nodes(g)
-   regionNodes <- unique(models[[1]]$tbl.regulatoryRegions$id)
-   tfNodes <- unique(models[[1]]$tbl.regulatoryRegions$tf)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$tf)
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
-   tbl.reg <- models[[1]]$tbl.regulatoryRegions
+   tbl.reg <- models[[1]]$regions
    #checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
 
    g.lo <- addGeneModelLayout(prep, g, xPos.span=1500)
@@ -262,8 +285,8 @@ test_buildMultiModelGraph_twoModels_15k_span <- function(display=FALSE)
    tbl.regulatoryRegions.rf1 <- subset(tbl.regulatoryRegions, tf %in% tbl.geneModel.rf1$tf)
 
 
-   models <- list(rf01=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf1,  tbl.geneModel=tbl.geneModel.rf1),
-                  rf10=list(tbl.regulatoryRegions=tbl.regulatoryRegions.rf10, tbl.geneModel=tbl.geneModel.rf10)
+   models <- list(rf01=list(regions=tbl.regulatoryRegions.rf1,  model=tbl.geneModel.rf1),
+                  rf10=list(regions=tbl.regulatoryRegions.rf10, model=tbl.geneModel.rf10)
                   )
 
    #save(models, file="models.2.big.RData")
@@ -272,10 +295,10 @@ test_buildMultiModelGraph_twoModels_15k_span <- function(display=FALSE)
 
    g <- buildMultiModelGraph(prep, models)
    nodesInGraph <- nodes(g)
-   regionNodes <- unique(models[[1]]$tbl.regulatoryRegions$id)
-   tfNodes <- unique(models[[1]]$tbl.regulatoryRegions$tf)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$tf)
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
-   tbl.reg <- models[[1]]$tbl.regulatoryRegions
+   tbl.reg <- models[[1]]$regions
    #checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
 
    g.lo <- addGeneModelLayout(prep, g, xPos.span=1500)

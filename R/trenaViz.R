@@ -59,6 +59,7 @@ setMethod('buildMultiModelGraph', 'trenaViz',
                                  concordance=0,
                                  betaLasso=0,
                                  motif="",
+                                 motifInModel=TRUE,
                                  xPos=0,
                                  yPos=0)
     edge.attribute.spec <- list(edgeType="undefined")
@@ -86,17 +87,24 @@ setMethod('buildMultiModelGraph', 'trenaViz',
 
     edgeDataDefaults(g, attr = "edgeType") <- "undefined"
 
+     #--------------------------------------------------------------------------------
+     # 3 kinds of nodes:  1 targetGene, multiple tfs (each a geneSymbol from the
+     # model), regulatory regions (binding sites, pfms matched to DNA)
+     #--------------------------------------------------------------------------------
+
     tfs <- c()
     regulatoryRegions <- c()
 
-    for(model in models){  # collect all the tf and regulatory region nodes
-       tbl.model <- model$tbl.geneModel
+      # collect all the tf and regulatory region nodes
+
+    for(model in models){
+       tbl.model <- model$model
        tfs <- unique(c(tfs, tbl.model$gene))
-       tbl.reg <- model$tbl.regulatoryRegions
+       tbl.reg <- model$regions
        regulatoryRegions <- unique(c(regulatoryRegions, tbl.reg$id))
        } # for model
 
-    printf("tfs: %d   regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
+    printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
 
     all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
     g <- addNode(all.nodes, g)
@@ -109,8 +117,8 @@ setMethod('buildMultiModelGraph', 'trenaViz',
       # add edges, edge attribute, and the constant attributes for all of the regulatoryRegion nodes
 
     for(model in models){
-       tfs <- model$tbl.regulatoryRegions$geneSymbol
-       regRegions <- model$tbl.regulatoryRegions$id
+       tfs <- model$regions$geneSymbol
+       regRegions <- model$regions$id
        suppressWarnings(g <- addEdge(tfs, regRegions, g))
        edgeData(g,  tfs, regRegions, "edgeType") <- "bindsTo"
        suppressWarnings(g <- addEdge(regRegions, targetGene, g))
@@ -124,19 +132,25 @@ setMethod('buildMultiModelGraph', 'trenaViz',
 
       # now copy in the first model's tf node data
 
-    tbl.model <- models[[1]]$tbl.geneModel
+    tbl.model <- models[[1]]$model
     nodeData(g, tbl.model$gene, attr="randomForest") <- tbl.model$rf.score
     nodeData(g, tbl.model$gene, attr="pearson") <- tbl.model$pearson.coeff
 
-     # now copy in each of the model's tf node data in turn
+     # now copy in each of the model's tf and regRegion node data in turn
     model.names <- names(models)
     for(model.name in model.names){
-       tbl.model <- models[[model.name]]$tbl.geneModel
+       tbl.model <- models[[model.name]]$model
        noa.name <- sprintf("%s.%s", model.name, "randomForest")
        nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$rf.score
        noa.name <- sprintf("%s.%s", model.name, "pearson")
        nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$pearson.coeff
-      } # for model.name
+       tbl.regRegions <- models[[model.name]]$regions
+       regRegionsInThisModel <- unique(tbl.regRegions$id)
+       regRegionsNotInThisModel <- setdiff(regulatoryRegions, regRegionsInThisModel)
+       attributeName <- sprintf("%s.%s", model.name, "motifInModel")
+       nodeData(g, regRegionsInThisModel, attr=attributeName) <- TRUE
+       nodeData(g, regRegionsNotInThisModel, attr=attributeName) <- FALSE
+       } # for model.name
 
     g
 
