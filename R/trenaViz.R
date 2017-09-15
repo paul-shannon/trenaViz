@@ -47,6 +47,22 @@ setMethod('buildMultiModelGraph', 'trenaViz',
 
   function (obj, targetGene, models){
 
+    stopifnot(is.list(models))
+    stopifnot(is.character(names(models)))
+
+    for(model in models){
+       stopifnot(sort(names(model)) == c("model", "regions"))
+       stopifnot(is.data.frame(model$model))
+       stopifnot(nrow(model$model) >= 2);  # at least two rows
+       stopifnot(is.data.frame(model$regions))  # regulatory regions
+       stopifnot("gene" %in% colnames(model$model))
+       stopifnot(ncol(model$model) >= 2)  # at least "gene" and some score (usually multiple scores)
+       stopifnot(all(c("motifName", "id", "distance.from.tss", "geneSymbol") %in% colnames(model$regions)))
+       } # for model
+
+      # the regions data.frame has two related columns: motifName and id.  for example
+      #
+
     g <- graphNEL(edgemode = "directed")
     model.names <- names(models)
 
@@ -109,6 +125,8 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
     g <- addNode(all.nodes, g)
 
+    #printf("--- browing after addNode in trenaViz::buildMultiModelGraph")
+    #browser()
     nodeData(g, targetGene, "type") <- "targetGene"
     nodeData(g, tfs, "type")         <- "TF"
     nodeData(g, regulatoryRegions, "type")  <- "regulatoryRegion"
@@ -123,7 +141,7 @@ setMethod('buildMultiModelGraph', 'trenaViz',
        edgeData(g,  tfs, regRegions, "edgeType") <- "bindsTo"
        suppressWarnings(g <- addEdge(regRegions, targetGene, g))
        edgeData(g, regRegions, targetGene, "edgeType") <- "regulatorySiteFor"
-       tokensList <- strsplit(tbl.reg$motifName, "-")
+       tokensList <- strsplit(tbl.reg$id, "-")
        motif.labels <- unlist(lapply(tokensList, function(tokens) tokens[length(tokens)]))
        nodeData(g, tbl.reg$id, "label") <- motif.labels
        nodeData(g, tbl.reg$id, "distance") <- tbl.reg$distance.from.tss
@@ -136,7 +154,7 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     nodeData(g, tbl.model$gene, attr="randomForest") <- tbl.model$rf.score
     nodeData(g, tbl.model$gene, attr="pearson") <- tbl.model$pearson.coeff
 
-     # now copy in each of the model's tf and regRegion node data in turn
+      # now copy in each of the model's tf and regRegion node data in turn
     model.names <- names(models)
     for(model.name in model.names){
        tbl.model <- models[[model.name]]$model

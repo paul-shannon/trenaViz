@@ -112,14 +112,15 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_oneModel")
 
-   load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
-   models <- list(tcf7=list(regions=tbl.regulatoryRegions.strong, model=tbl.geneModel.strong))
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+   models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model))
    targetGene <- "TCF7"
 
    g <- buildMultiModelGraph(tv, targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(models[[1]]$regions$id)
    tfNodes <- unique(models[[1]]$regions$geneSymbol)
+
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
    tbl.reg <- models[[1]]$regions
    checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
@@ -131,7 +132,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 
    if(display){
      browser()
-     setGraph(tv, g.lo) #, names(models))
+     setGraph(tv, g.lo, names(models))
      setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()

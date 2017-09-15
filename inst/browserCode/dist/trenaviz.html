@@ -31969,8 +31969,8 @@ function addBedTrackFromDataFrame(msg)
    var self = this;
    checkSignature(self, "addBedTrackFromDataFrame")
 
-   console.log("=== addBedTrackFromDataFrame");
-   console.log(JSON.stringify(msg));
+   //console.log("=== addBedTrackFromDataFrame");
+   //console.log(JSON.stringify(msg));
 
    var trackName = msg.payload.name;
    var bedFileName = msg.payload.bedFileName;
@@ -31987,7 +31987,7 @@ function addBedTrackFromDataFrame(msg)
                  color: color,
                  type: "annotation"};
 
-   console.log(JSON.stringify(config));
+   //console.log(JSON.stringify(config));
    self.igvBrowser.loadTrack(config);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
