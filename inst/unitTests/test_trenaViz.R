@@ -13,6 +13,7 @@ runTests <- function()
   testWindowTitle()
   testPing()
   testIGV()
+  test_graphToJSON()
   #testGraph()
   testLoadAndRemoveTracks()
   test_buildMultiModelGraph_oneModel()
@@ -60,6 +61,13 @@ testIGV <- function()
    checkTrue(grepl("chr18:", chromLocString));
 
 } # testIGV
+#--------------------------------------------------------------------------------
+test_graphToJSON <- function()
+{
+   load(system.file(package="trenaViz", "extdata", "graph.11nodes.14edges.RData"))
+   g.json <- trenaViz:::.graphToJSON(g)
+
+} # test_graphToJSON
 #--------------------------------------------------------------------------------
 testGraph <- function()
 {
@@ -125,6 +133,8 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    tbl.reg <- models[[1]]$regions
    checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
 
+   checkTrue(!any(is.null(unlist(nodeData(g), use.names=FALSE))))
+
    g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
@@ -140,6 +150,62 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
      }
 
 } # test_buildMultiModelGraph_oneModel
+#------------------------------------------------------------------------------------------------------------------------
+# make sure that the build process does not assume the existence of any one
+# node attribute
+test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE)
+{
+   printf("--- test_buildMultiModelGraph_oneModel_twoRandomeScoresOnly")
+
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+
+   scores.to.keep <- colnames(tbl.model)[1+sample(1:(ncol(tbl.model)-1), 2)]
+   columns.to.keep <- c("gene", scores.to.keep)
+
+   tbl.model.chopped <- tbl.model[, columns.to.keep]
+   models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model.chopped))
+   targetGene <- "TCF7"
+
+   g <- buildMultiModelGraph(tv, targetGene, models)
+   nodesInGraph <- nodes(g)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$geneSymbol)
+
+   checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
+   tbl.reg <- models[[1]]$regions
+   checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
+
+      # check the attributes
+      # keep in mind that their are the real node attributes - whose current values
+      # control the cyjs display - and the condition-specific attributes, which
+      # are the source for the real ones.  in cyjs, as the user flips from one
+      # visual model to the next, the condition-specific attributes are copied
+      # into the real ones.
+
+   checkTrue(!any(is.null(unlist(nodeData(g), use.names=FALSE))))
+
+   noa.names <- sort(names(nodeDataDefaults(g)))
+   checkTrue(all(scores.to.keep %in% noa.names))
+   checkTrue(all(sprintf("tcf7.%s", scores.to.keep) %in% noa.names))
+   standard.attributes <- c("distance", "label", "motif", "motifInModel", "type", "xPos", "yPos")
+   checkTrue(all(standard.attributes %in% noa.names))
+   checkTrue(all(sprintf("tcf7.%s", standard.attributes) %in% noa.names))
+
+   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
+   max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
+   checkEquals(abs(max.xPos - min.xPos), 1500)
+
+   if(display){
+     browser()
+     setGraph(tv, g.lo, names(models))
+     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     Sys.sleep(3); fit(tv)
+     browser()
+     xyz <- 99
+     }
+
+} # test_buildMultiModelGraph_oneModel_twoRandomScoresOnly
 #------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 {

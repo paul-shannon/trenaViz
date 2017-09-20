@@ -50,12 +50,18 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     stopifnot(is.list(models))
     stopifnot(is.character(names(models)))
 
+      # we require all gene models to have the same scores
+      # eg, they all have randomForest and lasso
+      # detect disagreement across models, stop if found
+    model.colnames <- colnames(models[[1]]$model)
+
     for(model in models){
        stopifnot(sort(names(model)) == c("model", "regions"))
        stopifnot(is.data.frame(model$model))
        stopifnot(nrow(model$model) >= 2);  # at least two rows
        stopifnot(is.data.frame(model$regions))  # regulatory regions
        stopifnot("gene" %in% colnames(model$model))
+       stopifnot(all(model.colnames == colnames(model$model)))
        stopifnot(ncol(model$model) >= 2)  # at least "gene" and some score (usually multiple scores)
        stopifnot(all(c("motifName", "id", "distance.from.tss", "geneSymbol") %in% colnames(model$regions)))
        } # for model
@@ -66,18 +72,25 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     g <- graphNEL(edgemode = "directed")
     model.names <- names(models)
 
-    node.attribute.specs <- list(type="undefined",
-                                 label="default node label",
-                                 distance=0,
-                                 pearson=0,
-                                 randomForest=0,
-                                 pcaMax=0,
-                                 concordance=0,
-                                 betaLasso=0,
-                                 motif="",
-                                 motifInModel=TRUE,
-                                 xPos=0,
-                                 yPos=0)
+    required.node.attribute.specs <- list(type="undefined",
+                                          label="default node label",
+                                          distance=0,
+                                          #pearson=0,
+                                          #randomForest=0,
+                                          #pcaMax=0,
+                                          #concordance=0,
+                                          #betaLasso=0,
+                                          motif="",
+                                          motifInModel=TRUE,
+                                          xPos=0,
+                                          yPos=0)
+
+       # remove "gene" from the colnames, leaving only the names of the scores we have been given
+    score.names <- model.colnames[-match("gene", model.colnames)]
+    optional.node.attribute.specs <- lapply(score.names, function(score) return(0))
+    names(optional.node.attribute.specs) <- score.names
+    node.attribute.specs <- c(required.node.attribute.specs, optional.node.attribute.specs)
+
     edge.attribute.spec <- list(edgeType="undefined")
     attribute.classes <- c("", model.names)  # "" (no prefix) is the currently displayed set of attibutes
 
@@ -150,18 +163,17 @@ setMethod('buildMultiModelGraph', 'trenaViz',
 
       # now copy in the first model's tf node data
 
-    tbl.model <- models[[1]]$model
-    nodeData(g, tbl.model$gene, attr="randomForest") <- tbl.model$rf.score
-    nodeData(g, tbl.model$gene, attr="pearson") <- tbl.model$pearson.coeff
+    #tbl.model <- models[[1]]$model
 
       # now copy in each of the model's tf and regRegion node data in turn
+    browser()
     model.names <- names(models)
     for(model.name in model.names){
        tbl.model <- models[[model.name]]$model
-       noa.name <- sprintf("%s.%s", model.name, "randomForest")
-       nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$rf.score
-       noa.name <- sprintf("%s.%s", model.name, "pearson")
-       nodeData(g,  tbl.model$gene, attr=noa.name) <- tbl.model$pearson.coeff
+       for(optional.noa.name in names(optional.node.attribute.specs)){
+          noa.name <- sprintf("%s.%s", model.name, optional.noa.name)
+          nodeData(g, tbl.model$gene, attr=noa.name) <- tbl.model[, optional.noa.name]
+          }
        tbl.regRegions <- models[[model.name]]$regions
        regRegionsInThisModel <- unique(tbl.regRegions$id)
        regRegionsNotInThisModel <- setdiff(regulatoryRegions, regRegionsInThisModel)
@@ -299,6 +311,7 @@ setMethod('setGraph', 'trenaViz',
      printf("trenaViz::setGraph");
      print(graph)
      printf("--- converting graph to JSON");
+     browser()
      g.json <- .graphToJSON(graph)
      printf("--- conversion complete");
      #g.json <- paste("network = ", .graphToJSON(graph))
@@ -505,6 +518,8 @@ setMethod('fitSelected', 'trenaViz',
 # }
 .graphToJSON <- function(g)
 {
+    #printf("--- browser at .graphToJSON start")
+    #browser()
     x <- '{"elements": [';
     nodes <- nodes(g)
     edgeNames <- edgeNames(g)
@@ -517,29 +532,49 @@ setMethod('fitSelected', 'trenaViz',
     nodeCount <- length(nodes)
     edgeCount <- length(edgeNames)
 
+    #printf("--- browser before node loop")
+    #browser()
+
     for(n in 1:nodeCount){
        node <- nodes[n]
+       printf("--- top of node loop %d: %s", n, x)
+       printf("node -----");
+       print(node)
+       if(node == "NR3C2") browser()
+       printf("1: %d", nchar(x))
        x <- sprintf('%s {"data": {"id": "%s"', x, node);
+       printf("1: %d", nchar(x))
        nodeAttributeCount <- length(noa.names)
        for(i in seq_len(nodeAttributeCount)){
           noa.name <- noa.names[i];
           value <-  nodeData(g, node, noa.name)[[1]]
+          printf("---- noa.name %d: %s --> %s", i, noa.name, as.character(value))
           if(is.numeric(value))
              x <- sprintf('%s, "%s": %s', x, noa.name, value)
           else
              x <- sprintf('%s, "%s": "%s"', x, noa.name, value)
+          printf("2: %d", nchar(x))
           } # for i
+       printf("3: %d", nchar(x))
        x <- sprintf('%s}', x)     # close off this node data element
+       printf("4: %d", nchar(x))
        if(all(c("xPos", "yPos") %in% noa.names)){
            xPos <- as.integer(nodeData(g, node, "xPos"))
            yPos <- as.integer(nodeData(g, node, "yPos"))
            x <- sprintf('%s, "position": {"x": %d, "y": %d}', x, xPos, yPos)
            } # add position element
+       printf("5: %d", nchar(x))
        x <- sprintf('%s}', x)     # close off this node data element
+       printf("6: %d", nchar(x))
        if(n != nodeCount)
            x <- sprintf("%s,", x)  # another node coming, add a comma
+       printf("7: %d", nchar(x))
+       #browser()
+       xyz <- 99
        } # for n
 
+    printf("--- browser before edge loop")
+    browser()
     for(e in seq_len(edgeCount)) {
        edgeName <- edgeNames[e]
        edge <- edges[[e]]
@@ -558,6 +593,8 @@ setMethod('fitSelected', 'trenaViz',
        x <- sprintf('%s}}', x)     # close off this edge data element
        } # for e
 
+    printf("--- browser before closing")
+    browser()
     x <- sprintf("%s]}", x)
 
     x

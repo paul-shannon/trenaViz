@@ -31802,7 +31802,7 @@ function setGenome(msg)
    var self = this;
    checkSignature(self, "setGenome")
 
-   var supportedGenomes = ["hg38", "mm10"];
+   var supportedGenomes = ["hg19", "hg38", "mm10"];
    var genomeName = msg.payload;
    var returnPayload = "";
 
@@ -31825,20 +31825,33 @@ function initializeIGV(self, genomeName)
 
    checkSignature(self, "initializeIGV")
 
+    var hg19_options = {
+	//locus: "MEF2C",
+     flanking: 1000,
+     showRuler: true,
+     minimumbBases: 10,
+
+     reference: {id: "hg19"},
+     tracks: [
+        {name: 'Gencode v18',
+              url: "https://s3.amazonaws.com/igv.broadinstitute.org/annotations/hg19/genes/gencode.v18.collapsed.bed",
+         indexURL: "https://s3.amazonaws.com/igv.broadinstitute.org/annotations/hg19/genes/gencode.v18.collapsed.bed.idx",
+         visibilityWindow: 2000000,
+         displayMode: 'EXPANDED'
+         }
+        ]
+     }; // hg19_options
+
+
     var hg38_options = {
 	//locus: "MEF2C",
      flanking: 1000,
      showRuler: true,
      minimumbBases: 10,
 
-     reference: {id: "hg38",
-                 //fastaURL: "http://igv.broadinstitute.org/genomes/seq/1kg_v37/human_g1k_v37_decoy.fasta",
-                 // cytobandURL: "http://igv.broadinstitute.org/genomes/seq/b37/b37_cytoband.txt"
-                 },
+     reference: {id: "hg38"},
      tracks: [
         {name: 'Gencode v24',
-         //url: "http://trena.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz",
-         //indexURL: "http://trena.systemsbiology.net/hg38/gencode.v24.annotation.sorted.gtf.gz.tbi",
          url: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz",
          indexURL: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz.tbi",
          format: 'gtf',
@@ -31873,6 +31886,9 @@ function initializeIGV(self, genomeName)
    var igvOptions = null;
 
    switch(genomeName) {
+      case "hg19":
+         igvOptions = hg19_options;
+         break;
       case "hg38":
          igvOptions = hg38_options;
          break;
