@@ -110,10 +110,12 @@ setMethod('buildMultiModelGraph', 'trenaViz',
        noa.names <- sprintf("%s%s", class.name.prefix, noa.names.without.prefix)
        noa.count <- length(node.attribute.specs)
        for(i in 1:noa.count){
+          #printf("adding nodeDataDefaults: %s", noa.names[i])
           nodeDataDefaults(g, attr=noa.names[i]) <- node.attribute.specs[[noa.names.without.prefix[i]]]
           }
        } # for class
 
+    #browser()
     edgeDataDefaults(g, attr = "edgeType") <- "undefined"
 
      #--------------------------------------------------------------------------------
@@ -133,7 +135,7 @@ setMethod('buildMultiModelGraph', 'trenaViz',
        regulatoryRegions <- unique(c(regulatoryRegions, tbl.reg$id))
        } # for model
 
-    printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
+    #printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
 
     all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
     g <- addNode(all.nodes, g)
@@ -166,7 +168,7 @@ setMethod('buildMultiModelGraph', 'trenaViz',
     #tbl.model <- models[[1]]$model
 
       # now copy in each of the model's tf and regRegion node data in turn
-    browser()
+    #browser()
     model.names <- names(models)
     for(model.name in model.names){
        tbl.model <- models[[model.name]]$model
@@ -189,9 +191,9 @@ setMethod('buildMultiModelGraph', 'trenaViz',
 setMethod('addGeneModelLayout', 'trenaViz',
 
   function (obj, g, xPos.span=1500){
-    printf("--- addGeneModelLayout")
+    #printf("--- addGeneModelLayout")
     all.distances <- sort(unique(unlist(nodeData(g, attr='distance'), use.names=FALSE)))
-    print(all.distances)
+    #print(all.distances)
 
     fp.nodes <- nodes(g)[which(unlist(nodeData(g, attr="type"), use.names=FALSE) == "regulatoryRegion")]
     tf.nodes <- nodes(g)[which(unlist(nodeData(g, attr="type"), use.names=FALSE) == "TF")]
@@ -201,7 +203,7 @@ setMethod('addGeneModelLayout', 'trenaViz',
     span.endpoints <- range(c(0, as.numeric(nodeData(g, fp.nodes, attr="distance"))))
     span <- max(span.endpoints) - min(span.endpoints)
     footprintLayoutFactor <- 1
-    printf("initial:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
+    #printf("initial:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
 
     footprintLayoutFactor <- xPos.span/span
 
@@ -210,7 +212,7 @@ setMethod('addGeneModelLayout', 'trenaViz',
     #if(span > 1000)
     #   footprintLayoutFactor <- span/1000
 
-    printf("corrected:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
+    #printf("corrected:  span: %d  footprintLayoutFactor: %f", span, footprintLayoutFactor)
 
     xPos <- as.numeric(nodeData(g, fp.nodes, attr="distance")) * footprintLayoutFactor
     yPos <- 0
@@ -218,8 +220,8 @@ setMethod('addGeneModelLayout', 'trenaViz',
     nodeData(g, fp.nodes, "yPos") <- yPos
 
     adjusted.span.endpoints <- range(c(0, as.numeric(nodeData(g, fp.nodes, attr="xPos"))))
-    printf("raw span of footprints: %d   footprintLayoutFactor: %f  new span: %8.0f",
-           span, footprintLayoutFactor, abs(max(adjusted.span.endpoints) - min(adjusted.span.endpoints)))
+    #printf("raw span of footprints: %d   footprintLayoutFactor: %f  new span: %8.0f",
+    #       span, footprintLayoutFactor, abs(max(adjusted.span.endpoints) - min(adjusted.span.endpoints)))
 
     tfs <- names(which(nodeData(g, attr="type") == "TF"))
 
@@ -295,7 +297,7 @@ setMethod('raiseTab', 'trenaViz',
 setMethod('setGenome', 'trenaViz',
 
   function (obj, genomeName) {
-     printf("trenaViz::addGenome");
+     #printf("trenaViz::addGenome");
      payload <- genomeName
      send(obj, list(cmd="setGenome", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
@@ -311,9 +313,9 @@ setMethod('setGraph', 'trenaViz',
      printf("trenaViz::setGraph");
      print(graph)
      printf("--- converting graph to JSON");
-     browser()
+     #browser()
      g.json <- .graphToJSON(graph)
-     printf("--- conversion complete");
+     #printf("--- conversion complete");
      #g.json <- paste("network = ", .graphToJSON(graph))
      #g.json <- paste("network = ", as.character(biocGraphToCytoscapeJSON(graph)))
      filename <- "g.json"
@@ -326,7 +328,6 @@ setMethod('setGraph', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -338,7 +339,7 @@ setMethod('setStyle', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
+     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -402,7 +403,7 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
+     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -438,7 +439,7 @@ setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
+     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -453,7 +454,7 @@ setMethod('addBedTrackFromHostedFile', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     printf("browserResponseReady")
+     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -537,44 +538,44 @@ setMethod('fitSelected', 'trenaViz',
 
     for(n in 1:nodeCount){
        node <- nodes[n]
-       printf("--- top of node loop %d: %s", n, x)
-       printf("node -----");
-       print(node)
-       if(node == "NR3C2") browser()
-       printf("1: %d", nchar(x))
+       #printf("--- top of node loop %d: %s", n, x)
+       #printf("node -----");
+       #print(node)
+       #if(node == "NR3C2") browser()
+       #printf("1: %d", nchar(x))
        x <- sprintf('%s {"data": {"id": "%s"', x, node);
-       printf("1: %d", nchar(x))
+       #printf("1: %d", nchar(x))
        nodeAttributeCount <- length(noa.names)
        for(i in seq_len(nodeAttributeCount)){
           noa.name <- noa.names[i];
           value <-  nodeData(g, node, noa.name)[[1]]
-          printf("---- noa.name %d: %s --> %s", i, noa.name, as.character(value))
+          #printf("---- noa.name %d: %s --> %s", i, noa.name, as.character(value))
           if(is.numeric(value))
              x <- sprintf('%s, "%s": %s', x, noa.name, value)
           else
              x <- sprintf('%s, "%s": "%s"', x, noa.name, value)
-          printf("2: %d", nchar(x))
+          #printf("2: %d", nchar(x))
           } # for i
-       printf("3: %d", nchar(x))
+       #printf("3: %d", nchar(x))
        x <- sprintf('%s}', x)     # close off this node data element
-       printf("4: %d", nchar(x))
+       #printf("4: %d", nchar(x))
        if(all(c("xPos", "yPos") %in% noa.names)){
            xPos <- as.integer(nodeData(g, node, "xPos"))
            yPos <- as.integer(nodeData(g, node, "yPos"))
            x <- sprintf('%s, "position": {"x": %d, "y": %d}', x, xPos, yPos)
            } # add position element
-       printf("5: %d", nchar(x))
+       #printf("5: %d", nchar(x))
        x <- sprintf('%s}', x)     # close off this node data element
-       printf("6: %d", nchar(x))
+       #printf("6: %d", nchar(x))
        if(n != nodeCount)
            x <- sprintf("%s,", x)  # another node coming, add a comma
-       printf("7: %d", nchar(x))
+       #printf("7: %d", nchar(x))
        #browser()
        xyz <- 99
        } # for n
 
-    printf("--- browser before edge loop")
-    browser()
+    #printf("--- browser before edge loop")
+    #browser()
     for(e in seq_len(edgeCount)) {
        edgeName <- edgeNames[e]
        edge <- edges[[e]]
@@ -593,8 +594,8 @@ setMethod('fitSelected', 'trenaViz',
        x <- sprintf('%s}}', x)     # close off this edge data element
        } # for e
 
-    printf("--- browser before closing")
-    browser()
+    #printf("--- browser before closing")
+    #browser()
     x <- sprintf("%s]}", x)
 
     x

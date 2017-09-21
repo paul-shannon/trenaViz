@@ -1,12 +1,12 @@
 library(RUnit)
 library(trenaViz)
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 printf <- function(...) print(noquote(sprintf(...)))
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 PORT.RANGE <- 8000:8020
 if(!exists("tv"))
    tv <- trenaViz(PORT.RANGE, quiet=TRUE);
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 runTests <- function()
 {
   testConstructor();
@@ -16,13 +16,17 @@ runTests <- function()
   test_graphToJSON()
   #testGraph()
   testLoadAndRemoveTracks()
+
+  test_buildMultiModelGraph_oneModel_twoRandomScoresOnly()
+  test_buildMultiModelGraph_oneModel_allScores()
+
   test_buildMultiModelGraph_oneModel()
   test_buildMultiModelGraph_twoModels()
 
   #closeWebSocket(tv)
 
 } # runTests
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 testConstructor <- function()
 {
    printf("--- testConstructor")
@@ -30,7 +34,7 @@ testConstructor <- function()
    checkTrue(port(tv) %in% PORT.RANGE)
 
 } # testConstructor
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 testWindowTitle <- function()
 {
    printf("--- testWindowTitle")
@@ -41,7 +45,7 @@ testWindowTitle <- function()
    checkEquals(getBrowserWindowTitle(tv), "new title")
 
 } # testWindowTitle
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 testPing <- function()
 {
    printf("--- testPing")
@@ -49,7 +53,7 @@ testPing <- function()
    checkEquals(ping(tv), "pong")
 
 } # testPing
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 testIGV <- function()
 {
    printf("--- testIGV")
@@ -61,15 +65,74 @@ testIGV <- function()
    checkTrue(grepl("chr18:", chromLocString));
 
 } # testIGV
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 test_graphToJSON <- function()
 {
-   load(system.file(package="trenaViz", "extdata", "graph.11nodes.14edges.RData"))
-   g.json <- trenaViz:::.graphToJSON(g)
+   printf("--- test_graphToJSON")
+
+   load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
+
+     # create a small graph, with just two TFs, 2 regulatory regions
+   tbl.model <- head(tbl.geneModel.strong, n=2)[, c("gene", "pearson.coeff", "rf.score")]
+   tbl.reg   <- subset(tbl.regulatoryRegions.strong, geneSymbol %in% tbl.model$gene)[1:2,]
+
+     # be sure that there is at least one regulatory region (and motif) per TF
+   checkTrue(all(tbl.model$gene %in% tbl.reg$geneSymbol))
+
+   targetGene <- "TCF7"
+   model <- list(tcf7=list(model=tbl.model, regions=tbl.reg))
+   g <- buildMultiModelGraph(tv, targetGene, model)
+
+   xCoordinate.span <- 1500
+   g.lo <- addGeneModelLayout(tv, g, xPos.span=xCoordinate.span)
+   g.json <- trenaViz:::.graphToJSON(g.lo)
+
+   checkEquals(class(g.json), "character")
+   checkTrue(nchar(g.json) > 3000)
+
+   x <- fromJSON(g.json)
+   checkEquals(names(x), "elements")
+   x.el <- x$elements
+   checkEquals(sort(names(x.el)), c("data", "position"))
+   checkTrue(is.data.frame(x.el$data))
+   checkTrue(is.data.frame(x.el$position))
+
+     # these back-converted data.frames are a bit odd in that nodes and edges and their attribute
+     # are all in the same data.frame.  we can, however, separate them out by ad hoc means
+
+   node.rows <- which(!is.na(x.el$data$type))
+   edge.rows <- which(is.na(x.el$data$type))
+
+   tbl.nodes <- x.el$data[node.rows,]
+   tbl.edges <- x.el$data[edge.rows,]
+
+      # do some very simple tests on the nodes
+   checkEquals(tbl.nodes$label, c("TCF7", "LEF1", "FOXP1", "MA0523.1", "MA0593.1"))
+   checkEquals(tbl.nodes$type,  c("targetGene", "TF", "TF", "regulatoryRegion", "regulatoryRegion"))
+
+     # and pm the edges
+   checkEquals(tbl.edges$edgeType, c("bindsTo", "bindsTo", "regulatorySiteFor", "regulatorySiteFor"))
+   checkEquals(tbl.edges$id,
+               c("LEF1->TCF7.fp.upstream.000351.Hsapiens-jaspar2016-TCF7L2-MA0523.1",
+                 "FOXP1->TCF7.fp.downstream.000329.Hsapiens-jaspar2016-FOXP2-MA0593.1",
+                 "TCF7.fp.upstream.000351.Hsapiens-jaspar2016-TCF7L2-MA0523.1->TCF7",
+                 "TCF7.fp.downstream.000329.Hsapiens-jaspar2016-FOXP2-MA0593.1->TCF7"))
+
+     # now check the node positions for plausibility
+   tbl.pos <- x.el$position[node.rows,]
+   checkEquals(colnames(tbl.pos), c("x", "y"))
+
+     # the layout algorithm ensures that the x coordiantes are centered on zero
+     # and that the whole span is not larger than that specified above as "xCoordinate.span"
+   checkTrue(all(tbl.pos$x) > -(xCoordinate.span/2))
+   checkTrue(all(tbl.pos$x) <  (xCoordinate.span/2))
+
+     # abs(y) are >= 1000
+   checkTrue(all(abs(tbl.pos$y) <= 2000))
 
 } # test_graphToJSON
-#--------------------------------------------------------------------------------
-testGraph <- function()
+#------------------------------------------------------------------------------------------------------------------------
+no_testGraph <- function()
 {
    printf("--- testGraph")
    setGraph(tv);
@@ -79,8 +142,8 @@ testGraph <- function()
    Sys.sleep(2)
    checkEquals(getSelectedNodes(tv), "a")
 
-} # testGraph
-#--------------------------------------------------------------------------------
+} # no_testGraph
+#------------------------------------------------------------------------------------------------------------------------
 testLoadAndRemoveTracks <- function()
 {
    printf("--- testLoadAndRemoveTracks")
@@ -115,7 +178,7 @@ testLoadAndRemoveTracks <- function()
    checkEquals(getTrackNames(tv), "Gencode v24")
 
 } # testLoadAndRemoveTracks
-#--------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_oneModel")
@@ -151,11 +214,10 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 
 } # test_buildMultiModelGraph_oneModel
 #------------------------------------------------------------------------------------------------------------------------
-# make sure that the build process does not assume the existence of any one
-# node attribute
+# make sure that the build process does not assume the existence of any one node attribute
 test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE)
 {
-   printf("--- test_buildMultiModelGraph_oneModel_twoRandomeScoresOnly")
+   printf("--- test_buildMultiModelGraph_oneModel_twoRandomScoresOnly")
 
    load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
 
@@ -207,11 +269,70 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
 
 } # test_buildMultiModelGraph_oneModel_twoRandomScoresOnly
 #------------------------------------------------------------------------------------------------------------------------
+# make sure that the build process does not assume the existence of any one node attribute
+test_buildMultiModelGraph_oneModel_allScores <- function(display=FALSE)
+{
+   printf("--- test_buildMultiModelGraph_oneModel_allScores")
+
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+
+   scores.to.keep <- colnames(tbl.model)[-1]
+   columns.to.keep <- c("gene", scores.to.keep)
+
+   tbl.model.chopped <- tbl.model[, columns.to.keep]
+   models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model.chopped))
+   targetGene <- "TCF7"
+
+   g <- buildMultiModelGraph(tv, targetGene, models)
+   nodesInGraph <- nodes(g)
+   regionNodes <- unique(models[[1]]$regions$id)
+   tfNodes <- unique(models[[1]]$regions$geneSymbol)
+
+   checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
+   tbl.reg <- models[[1]]$regions
+   checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
+
+      # check the attributes
+      # keep in mind that their are the real node attributes - whose current values
+      # control the cyjs display - and the condition-specific attributes, which
+      # are the source for the real ones.  in cyjs, as the user flips from one
+      # visual model to the next, the condition-specific attributes are copied
+      # into the real ones.
+
+   checkTrue(!any(is.null(unlist(nodeData(g), use.names=FALSE))))
+
+   noa.names <- sort(names(nodeDataDefaults(g)))
+   checkTrue(all(scores.to.keep %in% noa.names))
+   checkTrue(all(sprintf("tcf7.%s", scores.to.keep) %in% noa.names))
+   standard.attributes <- c("distance", "label", "motif", "motifInModel", "type", "xPos", "yPos")
+   checkTrue(all(standard.attributes %in% noa.names))
+   checkTrue(all(sprintf("tcf7.%s", standard.attributes) %in% noa.names))
+
+   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
+   max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
+   checkEquals(abs(max.xPos - min.xPos), 1500)
+
+   if(display){
+     browser()
+     setGraph(tv, g.lo, names(models))
+     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     Sys.sleep(3); fit(tv)
+     browser()
+     xyz <- 99
+     }
+
+} # test_buildMultiModelGraph_oneModel_allScores
+#------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_twoModels")
 
    load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
+
+   #scores.to.keep <- colnames(tbl.geneModel.strong)[1+sample(1:(ncol(tbl.geneModel.strong)-1), 2)]
+   #columns.to.keep <- c("gene", scores.to.keep)
+   #tbl.model.chopped <- tbl.geneModel.strong[, columns.to.keep]
 
      # copy and modify the gene model slightly but noticeably: remove the large repressor, ARNT2
    tbl.geneModel.2 <- subset(tbl.geneModel.strong, gene != "ARNT2")
@@ -249,6 +370,27 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
       # the tcf7 model, however, includes all motifs:
 
    checkTrue(all(as.logical(nodeData(g, attr="tcf7.motifInModel"))))
+
+      # there should be 3 instances of every node attribute.  using "concordance" as an example:
+      #    "concordance", "tcf7.concordance", "arnt2.deleted.concordance".
+   attributes <- colnames(tbl.geneModel.strong)
+   attributes <- attributes[-match("gene", attributes)]
+
+      # check for the three forms, for now ignoring prefixes ("", "tcf7.", "arnt2.deleted.")
+   checkTrue(all(unlist(lapply(attributes, function(attribute)
+                                  length(grep(attribute, names(nodeDataDefaults(g)))) == 3))))
+
+     # check for "tcf7." attributes
+   checkTrue(all(unlist(lapply(attributes, function(attribute)
+                                  length(grep(sprintf("tcf7.%s", attribute), names(nodeDataDefaults(g)))) == 1))))
+
+     # check for the "arnt2.deleted." attributes
+   checkTrue(all(unlist(lapply(attributes, function(attribute)
+                                  length(grep(sprintf("arnt2.deleted.%s", attribute), names(nodeDataDefaults(g)))) == 1))))
+
+     # check for the attributes without prefixes
+   checkTrue(all(unlist(lapply(attributes, function(attribute)
+                                  length(grep(sprintf("^%s", attribute), names(nodeDataDefaults(g)))) == 1))))
 
    g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
