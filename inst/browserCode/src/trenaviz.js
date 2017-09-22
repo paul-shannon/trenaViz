@@ -568,7 +568,7 @@ function createModelNamesMenu(self, modelNames)
        self.nextCyModel(self, modelName);
      });
 
-    self.nextCyModel(self, modelNames[0]);
+   setTimeout(function() {self.nextCyModel(self, modelNames[0])}, 0);
 
 } // createModelNamesMenu
 //----------------------------------------------------------------------------------------------------
@@ -581,17 +581,17 @@ function nextCyModel(self, modelName)
    checkSignature(self, "nextCyModel")
 
    self.cyjs.nodes().show()
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"randomForest": 0})})
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rfscore": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearsoncoeff": 0})})
 
-   var noaName = modelName + "." + "randomForest";
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"randomForest":  node.data(noaName)})})
+   var noaName = modelName + "." + "rfscore";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rfscore":  node.data(noaName)})})
 
-   noaName = modelName + "." + "pearson";
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson":       node.data(noaName)})})
+   noaName = modelName + "." + "pearsoncoeff";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearsoncoeff":       node.data(noaName)})})
 
      // now hide all the 0 randomForest TF nodes
-   self.cyjs.nodes().filter(function(node){return(node.data("randomForest") == 0 && node.data("type") == "TF")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("rfscore") == 0 && node.data("type") == "TF")}).hide()
 
      // transfer the "motifInModel" node attribute
    noaName = modelName + "." + "motifInModel";

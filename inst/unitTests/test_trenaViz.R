@@ -184,6 +184,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    printf("--- test_buildMultiModelGraph_oneModel")
 
    load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+   colnames(tbl.model) <- gsub(".", "", colnames(tbl.model), fixed=TRUE)
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model))
    targetGene <- "TCF7"
 
