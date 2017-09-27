@@ -412,7 +412,9 @@ setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
 
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray") {
      printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
-     required.colnames <- c("chr", "start", "end", "score")
+     found.chromosome.column <- any(grepl("^chr", colnames(tbl.bed), ignore.case=TRUE))
+     stopifnot(found.chromosome.column)
+     required.colnames <- c("start", "end", "score")
      missing.colnames <- setdiff(required.colnames, colnames(tbl.bed))
      if(length(missing.colnames) > 0){
         printf("addBedGraphTrackFromDataFrame detects missing column name: %s",

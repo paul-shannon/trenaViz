@@ -177,6 +177,16 @@ testLoadAndRemoveTracks <- function()
    removeTracksByName(tv, c("tbl.bed", "tbl.bedGraph"))
    checkEquals(getTrackNames(tv), "Gencode v24")
 
+   tbl.bedGraph2 <- tbl.bedGraph
+   colnames(tbl.bedGraph2)[1] <- "Chrom"   # make sure this colname tolerates case & extra characters
+   addBedGraphTrackFromDataFrame(tv, "tbl.bedGraph2", tbl.bedGraph2, color="purple",
+                                 minValue=min(tbl.bedGraph2$score), maxValue=max(tbl.bedGraph2$score),
+                                 displayMode="EXPANDED")
+
+   checkEquals(sort(getTrackNames(tv)), c("Gencode v24", "tbl.bedGraph2"))
+
+
+
 } # testLoadAndRemoveTracks
 #------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_oneModel <- function(display=FALSE)
