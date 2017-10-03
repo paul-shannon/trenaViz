@@ -173,7 +173,7 @@ function initializeIGV(self, genomeName)
 	//locus: "MEF2C",
      flanking: 1000,
      showRuler: true,
-     minimumbBases: 10,
+     minimumBases: 5,
 
      reference: {id: "hg19"},
      tracks: [
@@ -189,11 +189,15 @@ function initializeIGV(self, genomeName)
 
     var hg38_options = {
 	//locus: "MEF2C",
+     minimumBases: 5,
      flanking: 1000,
      showRuler: true,
-     minimumbBases: 10,
 
-     reference: {id: "hg38"},
+	reference: {
+	    id: "hg38",
+	    fastaURL: "https://s3.amazonaws.com/igv.broadinstitute.org/genomes/seq/hg38/hg38.fa",
+            cytobandURL: "https://s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/cytoBandIdeo.txt"
+            },
      tracks: [
         {name: 'Gencode v24',
          url: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz",
@@ -405,6 +409,7 @@ function addBedTrackFromHostedFile(msg)
      indexed = false;
      }
 
+    /***********
    var config = {format: "bed",
                  name: trackName,
                  url: uri,
@@ -412,11 +417,16 @@ function addBedTrackFromHostedFile(msg)
                  displayMode: displayMode,
                  color: color,
                  type: "annotation"};
+    *******/
+
 
    if(indexed){
      config.indexURL = indexUri;
      }
 
+   var config = {url: uri, name: trackName, color: color};
+   console.log("---- about to loadTrack");
+   console.log(config)
    self.igvBrowser.loadTrack(config);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
@@ -581,17 +591,17 @@ function nextCyModel(self, modelName)
    checkSignature(self, "nextCyModel")
 
    self.cyjs.nodes().show()
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rfscore": 0})})
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearsoncoeff": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rf_score": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson_coeff": 0})})
 
-   var noaName = modelName + "." + "rfscore";
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rfscore":  node.data(noaName)})})
+   var noaName = modelName + "." + "rf_score";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rf_score":  node.data(noaName)})})
 
-   noaName = modelName + "." + "pearsoncoeff";
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearsoncoeff":       node.data(noaName)})})
+   noaName = modelName + "." + "pearson_coeff";
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson_coeff":       node.data(noaName)})})
 
      // now hide all the 0 randomForest TF nodes
-   self.cyjs.nodes().filter(function(node){return(node.data("rfscore") == 0 && node.data("type") == "TF")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("rf_score") == 0 && node.data("type") == "TF")}).hide()
 
      // transfer the "motifInModel" node attribute
    noaName = modelName + "." + "motifInModel";
