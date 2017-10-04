@@ -297,7 +297,7 @@ setMethod('raiseTab', 'trenaViz',
 setMethod('setGenome', 'trenaViz',
 
   function (obj, genomeName) {
-     #printf("trenaViz::addGenome");
+     if(!obj@quiet) printf("trenaViz::addGenome");
      payload <- genomeName
      send(obj, list(cmd="setGenome", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
@@ -310,20 +310,24 @@ setMethod('setGenome', 'trenaViz',
 setMethod('setGraph', 'trenaViz',
 
   function (obj, graph=NULL, modelNames=NA) {
-     printf("trenaViz::setGraph");
-     print(graph)
-     printf("--- converting graph to JSON");
-     #browser()
+     if(!obj@quiet){
+        printf("trenaViz::setGraph");
+        print(graph)
+        printf("--- converting graph to JSON");
+        }
      g.json <- .graphToJSON(graph)
      #printf("--- conversion complete");
      #g.json <- paste("network = ", .graphToJSON(graph))
      #g.json <- paste("network = ", as.character(biocGraphToCytoscapeJSON(graph)))
      filename <- "g.json"
      payload <- list(filename=filename, modelNames=modelNames)
-     printf("--- about to write file 'g.json' with %d characters", nchar(g.json))
-     printf("--- first few characters: %s", substr(g.json, 1, 20))
+     if(!obj@quiet){
+        printf("--- about to write file 'g.json' with %d characters", nchar(g.json))
+        printf("--- first few characters: %s", substr(g.json, 1, 20))
+        }
      write(g.json, file=filename)
-     printf("--- file writing complete")
+     if(!obj@quiet)
+         printf("--- file writing complete")
      send(obj, list(cmd="setGraph", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
@@ -339,7 +343,8 @@ setMethod('setStyle', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     #printf("browserResponseReady")
+     if(!obj@quiet)
+        printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -395,7 +400,8 @@ setMethod('removeTracksByName', 'trenaViz',
 setMethod('addBedTrackFromDataFrame', 'trenaViz',
 
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color) {
-     printf("TrenaViz::addBedTrackFromDataFrame");
+     if(!obj@quiet)
+        printf("TrenaViz::addBedTrackFromDataFrame");
      temp.filename <- "tmp.bed"
      write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
      payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color)
@@ -403,7 +409,6 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -411,7 +416,8 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
 setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
 
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray") {
-     printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
+     if(!obj@quiet)
+        printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
      found.chromosome.column <- any(grepl("^chr", colnames(tbl.bed), ignore.case=TRUE))
      stopifnot(found.chromosome.column)
      required.colnames <- c("start", "end", "score")
@@ -449,14 +455,14 @@ setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
 setMethod('addBedTrackFromHostedFile', 'trenaViz',
 
   function (obj, trackName, uri, index.uri, displayMode="COLLAPSED", color) {
-     printf("TrenaViz::addBedTrackFromHostedFile");
+     if(!obj@quiet)
+        printf("TrenaViz::addBedTrackFromHostedFile");
      payload <- list(name=trackName, uri=uri, indexUri=index.uri, displayMode=displayMode, color=color)
      send(obj, list(cmd="addBedTrackFromHostedFile", callback="handleResponse",
                     status="request", payload=payload))
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
-     #printf("browserResponseReady")
      getBrowserResponse(obj);
      })
 
@@ -521,8 +527,6 @@ setMethod('fitSelected', 'trenaViz',
 # }
 .graphToJSON <- function(g)
 {
-    #printf("--- browser at .graphToJSON start")
-    #browser()
     x <- '{"elements": [';
     nodes <- nodes(g)
     edgeNames <- edgeNames(g)
@@ -535,23 +539,13 @@ setMethod('fitSelected', 'trenaViz',
     nodeCount <- length(nodes)
     edgeCount <- length(edgeNames)
 
-    #printf("--- browser before node loop")
-    #browser()
-
     for(n in 1:nodeCount){
        node <- nodes[n]
-       #printf("--- top of node loop %d: %s", n, x)
-       #printf("node -----");
-       #print(node)
-       #if(node == "NR3C2") browser()
-       #printf("1: %d", nchar(x))
        x <- sprintf('%s {"data": {"id": "%s"', x, node);
-       #printf("1: %d", nchar(x))
        nodeAttributeCount <- length(noa.names)
        for(i in seq_len(nodeAttributeCount)){
           noa.name <- noa.names[i];
           value <-  nodeData(g, node, noa.name)[[1]]
-          #printf("---- noa.name %d: %s --> %s", i, noa.name, as.character(value))
           if(is.numeric(value))
              x <- sprintf('%s, "%s": %s', x, noa.name, value)
           else
