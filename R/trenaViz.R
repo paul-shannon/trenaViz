@@ -64,10 +64,11 @@ setMethod('buildMultiModelGraph', 'trenaViz',
        stopifnot(all(model.colnames == colnames(model$model)))
        stopifnot(ncol(model$model) >= 2)  # at least "gene" and some score (usually multiple scores)
        stopifnot(all(c("motifName", "id", "distance.from.tss", "geneSymbol") %in% colnames(model$regions)))
+       tfs.in.model <- model$model$gene
+       tfs.in.regions <- unique(model$regions$geneSymbol)
+       stopifnot(sort(tfs.in.model) == sort(tfs.in.regions))
        } # for model
 
-      # the regions data.frame has two related columns: motifName and id.  for example
-      #
 
     g <- graphNEL(edgemode = "directed")
     model.names <- names(models)
