@@ -51,7 +51,9 @@ test_1669_3260 <- function(display=FALSE)
    g2 <- fromJSON(g.json, flatten=TRUE)
    checkEquals(lapply(g2, dim), list(nodes=c(11, 25), edges=c(14,4)))
 
-   g.json <- pre.allocate.graphToJSON(g.big)
+   system.time(  # < 14 seconds elapsed: 1669 nodes, 3260 edges
+      g.json <- pre.allocate.graphToJSON(g.big)
+      )
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -164,6 +166,33 @@ test_1_node <- function(display=FALSE)
    checkEquals(tbl.nodes$data.id, nodes(g))
 
 } # test_1_node
+#------------------------------------------------------------------------------------------------------------------------
+test_1_node_with_position <- function(display=FALSE)
+{
+   printf("--- test_1_node_with_position")
+
+   g <- graphNEL(nodes="A", edgemode="directed")
+   nodeDataDefaults(g, "xPos") <- 0
+   nodeDataDefaults(g, "yPos") <- 0
+   nodeData(g, n="A", "xPos") <- pi
+   nodeData(g, n="A", "yPos") <- cos(pi)
+
+   g.json <- pre.allocate.graphToJSON(g)
+
+   if(display){
+      writeLines(sprintf("network = %s", g.json), "network.js")
+      browseURL("cyjs-readNetworkFromFile.html")
+      } # display
+
+   g2 <- fromJSON(g.json, flatten=TRUE)
+   tbl.nodes <- g2$nodes
+   checkEquals(tbl.nodes$data.id, nodes(g))
+   checkEqualsNumeric(tbl.nodes$data.xPos,  3.1416, tol=1e-4)
+   checkEquals(tbl.nodes$position.x,        3.1416, tol=1e-4)
+   checkEqualsNumeric(tbl.nodes$data.yPos, -1,      tol=1e-4)
+   checkEquals(tbl.nodes$position.y,       -1,      tol=1e-4)
+
+} # test_1_node_with_position
 #------------------------------------------------------------------------------------------------------------------------
 test_2_nodes <- function(display=FALSE)
 {
@@ -387,29 +416,30 @@ pre.allocate.graphToJSON <- function(g)
 
     for(n in 1:nodeCount){
        node <- nodes[n]
-       #x <- sprintf('%s{"data": ', x)
        vec[i] <- '{"data": '; i <- i + 1
        nodeList <- list(id = node)
        this.nodes.data <- nodeData(g, node)[[1]]
        if(length(this.nodes.data) > 0)
           nodeList <- c(nodeList, this.nodes.data)
        nodeList.json <- toJSON(nodeList, auto_unbox=TRUE)
-       #x <- sprintf("%s %s", x, nodeList.json)
        vec[i] <- nodeList.json; i <- i + 1
+       if(all(c("xPos", "yPos") %in% names(nodeDataDefaults(g)))){
+          position.markup <- sprintf(', "position": {"x": %f, "y": %f}',
+                                     nodeData(g, node, "xPos")[[1]],
+                                     nodeData(g, node, "yPos")[[1]])
+          vec[i] <- position.markup
+          i <- i + 1
+          }
         if(n != nodeCount){
-           #x <- sprintf("%s},", x)  # another node coming, add a comma
            vec [i] <- "},"; i <- i + 1 # sprintf("%s},", x)  # another node coming, add a comma
            }
        } # for n
 
-    #x <- sprintf("%s}]", x)         # close off the last node, the node array ], the nodes element }
-    vec [i] <- "}]"; i <- i + 1 # , x)         # close off the last node, the node array ], the nodes element }
+    vec [i] <- "}]"; i <- i + 1  # close off the last node, the node array ], the nodes element }
 
     if(edgeCount > 0){
-       #x <- sprintf('%s, "edges": [', x)
        vec[i] <- ', "edges": [' ; i <- i + 1
        for(e in seq_len(edgeCount)) {
-          #x <- sprintf('%s{"data": ', x)
           vec[i] <- '{"data": '; i <- i + 1
           edgeName <- edgeNames[e]
           edge <- edges[[e]]
@@ -420,21 +450,17 @@ pre.allocate.graphToJSON <- function(g)
           if(length(this.edges.data) > 0)
              edgeList <- c(edgeList, this.edges.data)
           edgeList.json <- toJSON(edgeList, auto_unbox=TRUE)
-          # x <- sprintf("%s %s", x, edgeList.json)
           vec[i] <- edgeList.json; i <- i + 1
           if(e != edgeCount){          # add a comma, ready for the next edge element
-             #x <- sprintf('%s},', x)
              vec [i] <- '},'; i <- i + 1
              }
           } # for e
-      #x <- sprintf("%s}]", x)         # edge elements now complete, close the array
       vec [i] <- "}]"; i <- i + 1
       } # if edgeCount > 0
 
-   #x <- sprintf("%s}", x)
    vec [i] <- "}"
    vec.trimmed <- vec [which(vec != "")]
-   printf("%d strings used in construction json", length(vec.trimmed))
+   printf("%d strings used in constructing json", length(vec.trimmed))
    paste0(vec.trimmed, collapse=" ")
 
 } # pre.allocate.graphToJSON
