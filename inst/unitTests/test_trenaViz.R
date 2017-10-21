@@ -1,5 +1,7 @@
 library(RUnit)
+library(trena)
 library(trenaViz)
+library(MotifDb)
 #------------------------------------------------------------------------------------------------------------------------
 printf <- function(...) print(noquote(sprintf(...)))
 #------------------------------------------------------------------------------------------------------------------------
@@ -7,23 +9,32 @@ PORT.RANGE <- 8000:8020
 if(!exists("tv"))
    tv <- trenaViz(PORT.RANGE, quiet=TRUE);
 #------------------------------------------------------------------------------------------------------------------------
-runTests <- function()
+if(!exists("mtx")){
+    load(system.file(package="trena", "extdata/ampAD.154genes.mef2cTFs.278samples.RData"))
+    mtx <- asinh(mtx.sub)
+    mtx.var <- apply(mtx, 1, var)
+    deleters <- which(mtx.var < 0.01)
+    if(length(deleters) > 0)   # 15838 x 638
+        mtx <- mtx[-deleters,]
+    }
+#------------------------------------------------------------------------------------------------------------------------
+runTests <- function(display=FALSE)
 {
   testConstructor();
   testWindowTitle()
   testPing()
+
   testIGV()
-  test_graphToJSON()
-  #testGraph()
   testLoadAndRemoveTracks()
+
+  test_graphToJSON()
 
   test_buildMultiModelGraph_oneModel_twoRandomScoresOnly()
   test_buildMultiModelGraph_oneModel_allScores()
-
   test_buildMultiModelGraph_oneModel()
   test_buildMultiModelGraph_twoModels()
 
-  #closeWebSocket(tv)
+  test_buildMultiModelGraph_twoModels_two_promoterSpans(display=TRUE)
 
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
@@ -90,45 +101,29 @@ test_graphToJSON <- function()
    checkEquals(class(g.json), "character")
    checkTrue(nchar(g.json) > 3000)
 
-   x <- fromJSON(g.json)
+      # back-convert the json for integrity checking
+   x <- fromJSON(g.json, flatten=TRUE)
    checkEquals(names(x), "elements")
    x.el <- x$elements
-   checkEquals(sort(names(x.el)), c("data", "position"))
-   checkTrue(is.data.frame(x.el$data))
-   checkTrue(is.data.frame(x.el$position))
+   tbl.nodes <- x.el$nodes
+        # check a few of the many columns
+   some.expected.columns <- c("data.id", "data.label", "data.distance", "data.xPos", "position.x",
+                              "data.type", "data.tcf7.pearson.coeff")
+   checkTrue(all(some.expected.columns %in% colnames(tbl.nodes)))
+   expected.nodes <- c("TCF7", "LEF1", "FOXP1", "TCF7.fp.upstream.000351.Hsapiens-jaspar2016-TCF7L2-MA0523.1",
+                       "TCF7.fp.downstream.000329.Hsapiens-jaspar2016-FOXP2-MA0593.1")
+   checkTrue(all(expected.nodes %in% tbl.nodes$data.id))
 
-     # these back-converted data.frames are a bit odd in that nodes and edges and their attribute
-     # are all in the same data.frame.  we can, however, separate them out by ad hoc means
 
-   node.rows <- which(!is.na(x.el$data$type))
-   edge.rows <- which(is.na(x.el$data$type))
-
-   tbl.nodes <- x.el$data[node.rows,]
-   tbl.edges <- x.el$data[edge.rows,]
-
-      # do some very simple tests on the nodes
-   checkEquals(tbl.nodes$label, c("TCF7", "LEF1", "FOXP1", "MA0523.1", "MA0593.1"))
-   checkEquals(tbl.nodes$type,  c("targetGene", "TF", "TF", "regulatoryRegion", "regulatoryRegion"))
-
-     # and pm the edges
-   checkEquals(tbl.edges$edgeType, c("bindsTo", "bindsTo", "regulatorySiteFor", "regulatorySiteFor"))
-   checkEquals(tbl.edges$id,
-               c("LEF1->TCF7.fp.upstream.000351.Hsapiens-jaspar2016-TCF7L2-MA0523.1",
-                 "FOXP1->TCF7.fp.downstream.000329.Hsapiens-jaspar2016-FOXP2-MA0593.1",
-                 "TCF7.fp.upstream.000351.Hsapiens-jaspar2016-TCF7L2-MA0523.1->TCF7",
-                 "TCF7.fp.downstream.000329.Hsapiens-jaspar2016-FOXP2-MA0593.1->TCF7"))
+   tbl.edges <- x.el$edges
+   checkEquals(colnames(tbl.edges), c("data.id", "data.source", "data.target", "data.edgeType"))
+   checkEquals(sort(unique(tbl.edges$data.edgeType)), c("bindsTo", "regulatorySiteFor"))
 
      # now check the node positions for plausibility
-   tbl.pos <- x.el$position[node.rows,]
-   checkEquals(colnames(tbl.pos), c("x", "y"))
+   checkTrue(all(tbl.nodes$position.x > -(xCoordinate.span/2)))
+   checkTrue(all(tbl.nodes$position.x <  (1.2 * (xCoordinate.span/2))))   # whis is this fudge factor needed?
 
-     # the layout algorithm ensures that the x coordiantes are centered on zero
-     # and that the whole span is not larger than that specified above as "xCoordinate.span"
-   checkTrue(all(tbl.pos$x) > -(xCoordinate.span/2))
-   checkTrue(all(tbl.pos$x) <  (xCoordinate.span/2))
-
-     # abs(y) are >= 1000
-   checkTrue(all(abs(tbl.pos$y) <= 2000))
+   checkTrue(all(abs(tbl.nodes$position.y) < 2000))
 
 } # test_graphToJSON
 #------------------------------------------------------------------------------------------------------------------------
@@ -194,7 +189,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    printf("--- test_buildMultiModelGraph_oneModel")
 
    load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
-   colnames(tbl.model) <- gsub(".", "", colnames(tbl.model), fixed=TRUE)
+   colnames(tbl.model) <- gsub(".", "_", colnames(tbl.model), fixed=TRUE)
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model))
    targetGene <- "TCF7"
 
@@ -231,6 +226,8 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
    printf("--- test_buildMultiModelGraph_oneModel_twoRandomScoresOnly")
 
    load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+
+   colnames(tbl.model) <- gsub(".", "_", colnames(tbl.model), fixed=TRUE)
 
    scores.to.keep <- colnames(tbl.model)[1+sample(1:(ncol(tbl.model)-1), 2)]
    columns.to.keep <- c("gene", scores.to.keep)
@@ -341,6 +338,9 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
    load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
 
+   colnames(tbl.geneModel) <- gsub(".", "_", colnames(tbl.geneModel), fixed=TRUE)
+   colnames(tbl.geneModel.strong) <- gsub(".", "_", colnames(tbl.geneModel.strong), fixed=TRUE)
+
    #scores.to.keep <- colnames(tbl.geneModel.strong)[1+sample(1:(ncol(tbl.geneModel.strong)-1), 2)]
    #columns.to.keep <- c("gene", scores.to.keep)
    #tbl.model.chopped <- tbl.geneModel.strong[, columns.to.keep]
@@ -410,7 +410,8 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
    if(display){
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(tv, "style.js")
+     #setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -425,6 +426,9 @@ test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
    aqp4.tss <- 26865884
    fp.source <- "postgres://whovian/brain_hint_20"
    sources <- list(fp.source)
+
+   trena <- Trena("hg38")
+   tbl.geneModel <- createGeneModel(trena, targetGene, solver.names, tbl.motifs.tfs, mtx)
 
    prep <- TrenaPrep(targetGene, aqp4.tss, "chr18", aqp4.tss-1000, aqp4.tss+1000, regulatoryRegionSources=sources)
    x <- getRegulatoryRegions(prep)
@@ -482,58 +486,121 @@ test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
 
 } # test_buildMultiModelGraph_fiveModels
 #------------------------------------------------------------------------------------------------------------------------
-test_buildMultiModelGraph_twoModels_15k_span <- function(display=FALSE)
+test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
 {
-   printf("--- test_buildMultiModelGraph_twoModels_15k_span")
-   targetGene <- "AQP4"
-   aqp4.tss <- 26865884
-   fp.source <- "postgres://whovian/brain_hint_20"
-   sources <- list(fp.source)
+   printf("--- test_buildMultiModelGraph_twoModels_two_promotersSpans")
 
-   prep <- TrenaPrep(targetGene, aqp4.tss, "chr18", aqp4.tss-5000, aqp4.tss+10000, regulatoryRegionSources=sources)
-   x <- getRegulatoryRegions(prep)
-   closeAllPostgresConnections()
-   tbl.regulatoryRegions <- expandRegulatoryRegionsTableByTF(prep, x[[fp.source]])
+   #tv <- trenaViz(PORT.RANGE)
+   setGenome(tv, "hg38")
+   targetGene <- "MEF2C"
 
-   tbl.geneModel <- createGeneModel(prep, "randomForest", tbl.regulatoryRegions, mtx)
+   raiseTab(tv, "IGV")
+   showGenomicRegion(tv, targetGene)
+   targetGene.tss <- 88904257
+   chromosome <- "chr5"
 
-      # two get multiple models, filter on randomForest score
-   tbl.geneModel.rf10 <- subset(tbl.geneModel, randomForest > 10)
-   tbl.regulatoryRegions.rf10 <- subset(tbl.regulatoryRegions, tf %in% tbl.geneModel.rf10$tf)
+   database.filename <- system.file(package="trena", "extdata", "mef2c.neigborhood.hg38.footprints.db")
+   database.uri <- sprintf("sqlite://%s", database.filename)
+   sources <- list(sqlite=database.uri)
 
-   tbl.geneModel.rf1 <- subset(tbl.geneModel, randomForest > 1)
-   tbl.regulatoryRegions.rf1 <- subset(tbl.regulatoryRegions, tf %in% tbl.geneModel.rf1$tf)
+   trena <- Trena("hg38")
+
+       #----------------------------------------------------------------------------------
+       # create one gene model with a traditional, conservative promoter
+       #----------------------------------------------------------------------------------
+
+   loc.start <- targetGene.tss - 200
+   loc.end   <- targetGene.tss + 2000
+
+   showGenomicRegion(tv, sprintf("%s:%d-%d", chromosome, loc.start, loc.end))
+   x <- getRegulatoryChromosomalRegions(trena, chromosome, loc.start, loc.end, sources,
+                                        targetGene, targetGene.tss)
+
+   names(x) <- names(sources)
+   tbl.fp1 <- x[[1]]
+
+   if(display){
+     tbl.bed <- unique(tbl.fp1[, 1:3])
+     addBedTrackFromDataFrame(tv, "brain fp1", tbl.bed, displayMode="EXPANDED", color="darkRed")
+     }
+
+   tbl.fp1 <- associateTranscriptionFactors(MotifDb, tbl.fp1, source="MotifDb", expand.rows=TRUE)
+
+   unmapped <- which(is.na(tbl.fp1$geneSymbol))
+   if(length(unmapped) > 0)
+      tbl.fp1 <- tbl.fp1[-unmapped,]
+
+   solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
+   tbl.geneModel.1 <- createGeneModel(trena, targetGene, solver.names, tbl.fp1,  mtx)
+
+       #----------------------------------------------------------------------------------
+       # create a second gene regulatory model with a broader putative promoeter
+       #----------------------------------------------------------------------------------
+
+   loc.start <- targetGene.tss - 2000
+   loc.end   <- targetGene.tss + 5000
+      # there will be one data.frame of regulatory regions for every supplied data source
+   showGenomicRegion(tv, sprintf("%s:%d-%d", chromosome, loc.start, loc.end))
+   x <- getRegulatoryChromosomalRegions(trena, chromosome, loc.start, loc.end, sources,
+                                        targetGene, targetGene.tss)
+   names(x) <- names(sources)
+   tbl.fp2 <- x[[1]]
+
+   if(display){
+     tbl.bed <- unique(tbl.fp2[, 1:3])
+     addBedTrackFromDataFrame(tv, "brain fp2", tbl.bed, displayMode="EXPANDED", color="darkBlue")
+     }
 
 
-   models <- list(rf01=list(regions=tbl.regulatoryRegions.rf1,  model=tbl.geneModel.rf1),
-                  rf10=list(regions=tbl.regulatoryRegions.rf10, model=tbl.geneModel.rf10)
+   tbl.fp2 <- associateTranscriptionFactors(MotifDb, tbl.fp2, source="MotifDb", expand.rows=TRUE)
+
+   unmapped <- which(is.na(tbl.fp2$geneSymbol))
+   if(length(unmapped) > 0)
+      tbl.fp2 <- tbl.fp2[-unmapped,]
+
+   solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
+   tbl.geneModel.2 <- createGeneModel(trena, targetGene, solver.names, tbl.fp2,  mtx)
+
+       #----------------------------------------------------------------------------------
+       # before making a "multimodel", delete all the candidate regulatory regions
+       # except those corresponding to TFs in the corresponding gene model
+       #----------------------------------------------------------------------------------
+
+   tbl.fp1 <- unique(subset(tbl.fp1, geneSymbol %in% tbl.geneModel.1$gene))    # 4  x 11
+   tbl.fp2 <- unique(subset(tbl.fp2, geneSymbol %in% tbl.geneModel.2$gene))    # 21 x 11
+
+       #----------------------------------------------------------------------------------
+       # jsavascript (cytoscape.js in the trenaViz webapp) cannot use "." in
+       # variable names: they are interpreted as record field delimeters
+       # our impefrect solution, for now, is to convert all of these to underscore
+       # in the colum titles
+       #----------------------------------------------------------------------------------
+
+   colnames(tbl.geneModel.1) <- gsub(".", "_", colnames(tbl.geneModel.1), fixed=TRUE)
+   colnames(tbl.geneModel.2) <- gsub(".", "_", colnames(tbl.geneModel.2), fixed=TRUE)
+
+   models <- list(promoter_2000_200 =list(regions=tbl.fp1,   model=tbl.geneModel.1),
+                  promoter_5000_2000=list(regions=tbl.fp2,   model=tbl.geneModel.2)
                   )
 
-   #save(models, file="models.2.big.RData")
-   #load("models.2.big.RData")
-
-
-   g <- buildMultiModelGraph(prep, models)
+   g <- buildMultiModelGraph(tv, targetGene, models)
    nodesInGraph <- nodes(g)
-   regionNodes <- unique(models[[1]]$regions$id)
-   tfNodes <- unique(models[[1]]$regions$tf)
+   regionNodes <- unique(c(models[[1]]$regions$id, models[[2]]$regions$id))
+   tfNodes     <- unique(c(models[[1]]$model$gene, models[[2]]$model$gene))
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
-   tbl.reg <- models[[1]]$regions
-   #checkEquals(length(edgeNames(g)), nrow(tbl.reg) + length(unique(tbl.reg$id)))
 
-   g.lo <- addGeneModelLayout(prep, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)
 
    if(display){
-     httpAddGraph(tv, g.lo, names(models))
-     loadStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setGraph(tv, g.lo, names(models))
+     setStyle(tv, "style.js")
      Sys.sleep(3); fit(tv)
-     browser()
      }
 
-} # test_buildMultiModelGraph_fiveModels
+} # test_buildMultiModelGraph_twoModels_two_promoterSpans
 #------------------------------------------------------------------------------------------------------------------------
 test_geneModelLayout <- function()
 {
@@ -558,5 +625,6 @@ test_geneModelLayout <- function()
 
 } # test_geneModelLayout
 #------------------------------------------------------------------------------------------------------------------------
+
 if(!interactive())
     runTests()

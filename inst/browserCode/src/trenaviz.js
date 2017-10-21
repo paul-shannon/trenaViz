@@ -540,6 +540,9 @@ function setGraph(msg)
      createModelNamesMenu(self, modelNames);
      }
 
+   self.modelNames = modelNames;  // make this an attribute of the trenaviz object
+   if(typeof(self.modelNames) == "string")
+      self.modelNames = [self.modelNames];
 
    var status = readNetworkFromFile(temporaryFileName, self.cyjs)
    initializeTrnCytoscapeButtons(self);
@@ -548,6 +551,8 @@ function setGraph(msg)
      console.log("about to call that.fit, self: ");
      console.log(self);
      self.cyjs.fit(100);
+     console.log("setGraph requests ext style model: " + modelNames[0]);
+     self.nextCyModel(self, modelNames[0]);
      }, 500);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
@@ -590,14 +595,20 @@ function nextCyModel(self, modelName)
    console.log(self)
    checkSignature(self, "nextCyModel")
 
+     // make all nodes visible.  some may have been hidden in the previous view
    self.cyjs.nodes().show()
+     // rf_score and pearson_coeff are the current popular node attributes
+     // for controlling size and color.  set them, for all TF nodes, to zero
    self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rf_score": 0})})
    self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson_coeff": 0})})
 
+      // transfer all <modelName>.rf_score to simply "rf_score"
    var noaName = modelName + "." + "rf_score";
+   console.log("--- copying " + noaName + " values to rf_score");
    self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rf_score":  node.data(noaName)})})
 
    noaName = modelName + "." + "pearson_coeff";
+   console.log("--- copying " + noaName + " values to pearson_coeff");
    self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson_coeff":       node.data(noaName)})})
 
      // now hide all the 0 randomForest TF nodes
@@ -622,6 +633,10 @@ function setStyle(msg)
    var filename = msg.payload;
    console.log("setStyle: '" + filename + "'");
    loadStyleFile(filename, self.cyjs);
+
+      // load in the node attributes of the next model
+      // in this case, setting a new style, emplace the first model
+   self.nextCyModel(self, self.modelNames[0]);
 
    var return_msg = {cmd: msg.callback, status: "success", callback: "", payload: ""};
    hub.send(return_msg);

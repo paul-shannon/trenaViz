@@ -317,9 +317,7 @@ setMethod('setGraph', 'trenaViz',
         printf("--- converting graph to JSON");
         }
      g.json <- .graphToJSON(graph)
-     #printf("--- conversion complete");
-     #g.json <- paste("network = ", .graphToJSON(graph))
-     #g.json <- paste("network = ", as.character(biocGraphToCytoscapeJSON(graph)))
+     if(!obj@quiet)printf("--- g.json conversion complete");
      filename <- "g.json"
      payload <- list(filename=filename, modelNames=modelNames)
      if(!obj@quiet){
@@ -518,6 +516,86 @@ setMethod('fitSelected', 'trenaViz',
      })
 
 #----------------------------------------------------------------------------------------------------
+# the basic form
+#
+#   network =  {"nodes":[{"data":{"id":"o"},"position":{"x":779.5, "y":500 }}],
+#               "edges":[{"data":{"source":"o","target":"o","id":"e1"}}]};
+#
+.graphToJSON <- function(g)
+{
+   if(length(nodes(g)) == 0)
+      return ("{}")
+
+       # allocate more character vectors that we could ever need
+    vector.count <- 10 * (length(edgeNames(g)) + length (nodes(g)))
+    vec <- vector(mode="character", length=vector.count)
+    i <- 1;
+
+    vec[i] <- '{"elements": {"nodes": ['; i <- i + 1;
+    nodes <- nodes(g)
+    edgeNames <- edgeNames(g)
+    edges <- strsplit(edgeNames, "~")  # a list of pairs
+    edgeNames <- sub("~", "->", edgeNames)
+    names(edges) <- edgeNames
+
+    noa.names <- names(nodeDataDefaults(g))
+    eda.names <- names(edgeDataDefaults(g))
+    nodeCount <- length(nodes)
+    edgeCount <- length(edgeNames)
+
+    for(n in 1:nodeCount){
+       node <- nodes[n]
+       vec[i] <- '{"data": '; i <- i + 1
+       nodeList <- list(id = node)
+       this.nodes.data <- nodeData(g, node)[[1]]
+       if(length(this.nodes.data) > 0)
+          nodeList <- c(nodeList, this.nodes.data)
+       nodeList.json <- toJSON(nodeList, auto_unbox=TRUE)
+       vec[i] <- nodeList.json; i <- i + 1
+       if(all(c("xPos", "yPos") %in% names(nodeDataDefaults(g)))){
+          position.markup <- sprintf(', "position": {"x": %f, "y": %f}',
+                                     nodeData(g, node, "xPos")[[1]],
+                                     nodeData(g, node, "yPos")[[1]])
+          vec[i] <- position.markup
+          i <- i + 1
+          }
+        if(n != nodeCount){
+           vec [i] <- "},"; i <- i + 1 # sprintf("%s},", x)  # another node coming, add a comma
+           }
+       } # for n
+
+    vec [i] <- "}]"; i <- i + 1  # close off the last node, the node array ], the nodes element }
+
+    if(edgeCount > 0){
+       vec[i] <- ', "edges": [' ; i <- i + 1
+       for(e in seq_len(edgeCount)) {
+          vec[i] <- '{"data": '; i <- i + 1
+          edgeName <- edgeNames[e]
+          edge <- edges[[e]]
+          sourceNode <- edge[[1]]
+          targetNode <- edge[[2]]
+          edgeList <- list(id=edgeName, source=sourceNode, target=targetNode)
+          this.edges.data <- edgeData(g, sourceNode, targetNode)[[1]]
+          if(length(this.edges.data) > 0)
+             edgeList <- c(edgeList, this.edges.data)
+          edgeList.json <- toJSON(edgeList, auto_unbox=TRUE)
+          vec[i] <- edgeList.json; i <- i + 1
+          if(e != edgeCount){          # add a comma, ready for the next edge element
+             vec [i] <- '},'; i <- i + 1
+             }
+          } # for e
+      vec [i] <- "}]"; i <- i + 1
+      } # if edgeCount > 0
+
+   vec [i] <- "}"  # close the edges object
+   i <- i + 1;
+   vec [i] <- "}"  # close the elements object
+   vec.trimmed <- vec [which(vec != "")]
+   printf("%d strings used in constructing json", length(vec.trimmed))
+   paste0(vec.trimmed, collapse=" ")
+
+} # .graphToJSON
+#------------------------------------------------------------------------------------------------------------------------
 # {elements: [
 #    {data: {id: 'a', score:5}, position: {x: 100, y: 200}},
 #    {data: {id: 'b', score:100}, position: {x: 200, y: 200}},
@@ -526,7 +604,7 @@ setMethod('fitSelected', 'trenaViz',
 # layout: { name: 'preset'},
 # style: [{selector: 'node', style: {'content': 'data(id)'}}]
 # }
-.graphToJSON <- function(g)
+old.graphToJSON <- function(g)
 {
     x <- '{"elements": [';
     nodes <- nodes(g)
@@ -597,7 +675,7 @@ setMethod('fitSelected', 'trenaViz',
 
     x
 
-} # .graphToJSON
+} # old.graphToJSON
 #------------------------------------------------------------------------------------------------------------------------
 myQP <- function(queryString)
 {

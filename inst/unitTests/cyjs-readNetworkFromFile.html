@@ -15,6 +15,9 @@
 <script>
 $(document).ready(function(){
     console.log("document ready");
+    jsonText = JSON.stringify({"elements": {"nodes": [{"data":  {"id":"n1"}},{"data":  {"id":"n2"}}],
+                                            "edges": [{"data":  {"id":"n1->n1","source":"n1","target":"n1"}},
+                                                      {"data":  {"id":"n1->n2","source":"n1","target":"n2"}}]}});
     options = {container: $('#cyjs'),
                layout: {name: 'preset', fit: true},
                elements: network,

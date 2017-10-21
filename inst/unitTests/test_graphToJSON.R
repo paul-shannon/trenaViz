@@ -19,6 +19,19 @@ if(!exists("g.small")){
 #------------------------------------------------------------------------------------------------------------------------
 runTests <- function()
 {
+   test_1_node()
+   test_1_node_with_position()
+   test_2_nodes()
+   test_2_nodes_1_edge()
+   test_1_node_2_attributes()
+   test_2_nodes_1_edge_2_edgeAttribute()
+   test_smallGraphWithAttributes()
+   test_2_nodes_2_edges_no_attributes()
+   test_20_nodes_20_edges_no_attributes()
+   test_200_nodes_200_edges_no_attributes()
+   test_2000_nodes_2000_edges_no_attributes()
+   test_1669_3260()
+
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
 createTestGraph <- function(nodeCount, edgeCount)
@@ -39,8 +52,7 @@ createTestGraph <- function(nodeCount, edgeCount)
 test_1669_3260 <- function(display=FALSE)
 {
    printf("--- test_1669_3260")
-   Rprof()
-   g.json <- pre.allocate.graphToJSON(g.small)
+   g.json <- trenaViz:::.graphToJSON(g.small)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -49,10 +61,10 @@ test_1669_3260 <- function(display=FALSE)
 
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   checkEquals(lapply(g2, dim), list(nodes=c(11, 25), edges=c(14,4)))
+   checkEquals(lapply(g2$elements, dim), list(nodes=c(11, 27), edges=c(14,4)))
 
    system.time(  # < 14 seconds elapsed: 1669 nodes, 3260 edges
-      g.json <- pre.allocate.graphToJSON(g.big)
+      g.json <- trenaViz:::.graphToJSON(g.big)
       )
 
    if(display){
@@ -61,10 +73,7 @@ test_1669_3260 <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   checkEquals(lapply(g2, dim), list(nodes=c(11, 25), edges=c(14,4)))
-
-    Rprof(NULL)
-   summaryRprof()
+   checkEquals(lapply(g2$elements, dim), list(nodes=c(1669, 83), edges=c(3260, 4)))
 
  } # test_1669_3260
 #------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +82,7 @@ test_2_nodes_2_edges_no_attributes <- function(display=FALSE)
    printf("--- test_2_nodes_2_edges_no_attributes")
 
    g <- createTestGraph(2, 2)
-   g.json <- graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -81,9 +90,9 @@ test_2_nodes_2_edges_no_attributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(2, 3))
 
  } # test_2_nodes_2_edges_no_attributes
@@ -93,7 +102,7 @@ test_20_nodes_20_edges_no_attributes <- function(display=FALSE)
    printf("--- test_20_nodes_20_edges_no_attributes")
 
    g <- createTestGraph(20, 20)
-   g.json <- graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -101,9 +110,9 @@ test_20_nodes_20_edges_no_attributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(20, 3))
 
  } # test_2_nodes_2_edges_no_attributes
@@ -113,7 +122,7 @@ test_200_nodes_200_edges_no_attributes <- function(display=FALSE)
    printf("--- test_200_nodes_200_edges_no_attributes")
 
    g <- createTestGraph(200, 200)
-   g.json <- graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -121,9 +130,9 @@ test_200_nodes_200_edges_no_attributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(200, 3))
 
  } # test_200_nodes_200_edges_no_attributes
@@ -134,7 +143,7 @@ test_2000_nodes_2000_edges_no_attributes <- function(display=FALSE)
 
    print(system.time({   # 4 seconds
       g <- createTestGraph(2000, 2000)
-      g.json <- graphToJSON(g)
+      g.json <- trenaViz:::.graphToJSON(g)
       }))
 
    if(display){
@@ -143,9 +152,9 @@ test_2000_nodes_2000_edges_no_attributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(2000, 3))
 
  } # test_2000_nodes_2000_edges_no_attributes
@@ -154,7 +163,7 @@ test_1_node <- function(display=FALSE)
 {
    printf("--- test_1_node")
    g <- graphNEL(nodes="A", edgemode="directed")
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -162,7 +171,7 @@ test_1_node <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
 
 } # test_1_node
@@ -177,7 +186,7 @@ test_1_node_with_position <- function(display=FALSE)
    nodeData(g, n="A", "xPos") <- pi
    nodeData(g, n="A", "yPos") <- cos(pi)
 
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -185,7 +194,7 @@ test_1_node_with_position <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
    checkEqualsNumeric(tbl.nodes$data.xPos,  3.1416, tol=1e-4)
    checkEquals(tbl.nodes$position.x,        3.1416, tol=1e-4)
@@ -199,7 +208,7 @@ test_2_nodes <- function(display=FALSE)
    printf("--- test_2_nodes")
 
    g <- graphNEL(nodes=c("A", "B"), edgemode="directed")
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -207,7 +216,7 @@ test_2_nodes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
 
 } # test_2_nodes
@@ -218,7 +227,7 @@ test_2_nodes_1_edge <- function(display=FALSE)
 
    g <- graphNEL(nodes=c("X", "Y"), edgemode="directed")
    g <- addEdge("X", "Y", g);
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -227,12 +236,12 @@ test_2_nodes_1_edge <- function(display=FALSE)
 
       #  flatten: automatically ‘flatten’ nested data frames into a single non-nested data frame
    g2 <- fromJSON(g.json, flatten=TRUE)
-   checkEquals(names(g2), c("nodes", "edges"))
-   tbl.nodes <- g2$nodes
+   checkEquals(names(g2$elements), c("nodes", "edges"))
+   tbl.nodes <- g2$elements$nodes
    checkEquals(dim(tbl.nodes), c(2,1))
    checkEquals(tbl.nodes$data.id, c("X", "Y"))
 
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(1,3))
    checkEquals(tbl.edges$data.id, "X->Y")
 
@@ -249,7 +258,7 @@ test_1_node_2_attributes <- function(display=FALSE)
    nodeDataDefaults(g, "label") <- ""
    nodeData(g, "A", "label") <- "bigA"
 
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -257,7 +266,7 @@ test_1_node_2_attributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   tbl.nodes <- g2$nodes
+   tbl.nodes <- g2$elements$nodes
    checkEquals(tbl.nodes$data.id, nodes(g))
    checkEquals(tbl.nodes$data.size, 99)
    checkEquals(tbl.nodes$data.label, "bigA")
@@ -275,7 +284,7 @@ test_2_nodes_1_edge_2_edgeAttribute <- function(display=FALSE)
    edgeData(g, "X", "Y", "weight") <- 1.234
    edgeData(g, "X", "Y", "edgeType") <- "regulates"
 
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -284,12 +293,12 @@ test_2_nodes_1_edge_2_edgeAttribute <- function(display=FALSE)
 
       #  flatten: automatically ‘flatten’ nested data frames into a single non-nested data frame
    g2 <- fromJSON(g.json, flatten=TRUE)
-   checkEquals(names(g2), c("nodes", "edges"))
-   tbl.nodes <- g2$nodes
+   checkEquals(names(g2$elements), c("nodes", "edges"))
+   tbl.nodes <- g2$elements$nodes
    checkEquals(dim(tbl.nodes), c(2,1))
    checkEquals(tbl.nodes$data.id, c("X", "Y"))
 
-   tbl.edges <- g2$edges
+   tbl.edges <- g2$elements$edges
    checkEquals(dim(tbl.edges), c(1,5))
    checkEquals(tbl.edges$data.id, "X->Y")
    checkEquals(tbl.edges$data.source, "X")
@@ -303,7 +312,7 @@ test_smallGraphWithAttributes <- function(display=FALSE)
 {
    printf("--- test_smallGraphWithAttributes")
    g <- simpleDemoGraph()
-   g.json <- pre.allocate.graphToJSON(g)
+   g.json <- trenaViz:::.graphToJSON(g)
 
    if(display){
       writeLines(sprintf("network = %s", g.json), "network.js")
@@ -311,9 +320,9 @@ test_smallGraphWithAttributes <- function(display=FALSE)
       } # display
 
    g2 <- fromJSON(g.json, flatten=TRUE)
-   checkEquals(names(g2), c("nodes", "edges"))
-   tbl.nodes <- g2$nodes
-   tbl.edges <- g2$edges
+   checkEquals(names(g2$elements), c("nodes", "edges"))
+   tbl.nodes <- g2$elements$nodes
+   tbl.edges <- g2$elements$edges
 
    checkEquals(dim(tbl.nodes), c(3, 5))
    checkEquals(colnames(tbl.nodes),
@@ -322,212 +331,6 @@ test_smallGraphWithAttributes <- function(display=FALSE)
    checkEquals(colnames(tbl.edges), c("data.id", "data.source", "data.target", "data.edgeType", "data.score", "data.misc"))
 
 } # test_smallGraphWithAttributes
-#------------------------------------------------------------------------------------------------------------------------
-graphToJSON <- function(g)
-{
-   if(length(nodes(g)) == 0)
-      return ("{}")
-
-    x <- '{"nodes": [';
-    nodes <- nodes(g)
-    edgeNames <- edgeNames(g)
-    edges <- strsplit(edgeNames, "~")  # a list of pairs
-    edgeNames <- sub("~", "->", edgeNames)
-    names(edges) <- edgeNames
-
-    noa.names <- names(nodeDataDefaults(g))
-    eda.names <- names(edgeDataDefaults(g))
-    nodeCount <- length(nodes)
-    edgeCount <- length(edgeNames)
-
-    for(n in 1:nodeCount){
-       node <- nodes[n]
-       x <- sprintf('%s{"data": ', x)
-       nodeList <- list(id = node)
-       this.nodes.data <- nodeData(g, node)[[1]]
-       if(length(this.nodes.data) > 0)
-          nodeList <- c(nodeList, this.nodes.data)
-       nodeList.json <- toJSON(nodeList, auto_unbox=TRUE)
-       x <- sprintf("%s %s", x, nodeList.json)
-        if(n != nodeCount)
-           x <- sprintf("%s},", x)  # another node coming, add a comma
-       } # for n
-
-    x <- sprintf("%s}]", x)         # close off the last node, the node array ], the nodes element }
-
-    if(edgeCount > 0){
-       x <- sprintf('%s, "edges": [', x)
-       for(e in seq_len(edgeCount)) {
-          x <- sprintf('%s{"data": ', x)
-          edgeName <- edgeNames[e]
-          edge <- edges[[e]]
-          sourceNode <- edge[[1]]
-          targetNode <- edge[[2]]
-          edgeList <- list(id=edgeName, source=sourceNode, target=targetNode)
-          this.edges.data <- edgeData(g, sourceNode, targetNode)[[1]]
-          if(length(this.edges.data) > 0)
-             edgeList <- c(edgeList, this.edges.data)
-          edgeList.json <- toJSON(edgeList, auto_unbox=TRUE)
-          x <- sprintf("%s %s", x, edgeList.json)
-          if(e != edgeCount)          # add a comma, ready for the next edge element
-             x <- sprintf('%s},', x)
-          } # for e
-      x <- sprintf("%s}]", x)         # edge elements now complete, close the array
-      } # if edgeCount > 0
-
-   x <- sprintf("%s}", x)
-
-   x
-
-} # graphToJSON
-#------------------------------------------------------------------------------------------------------------------------
-# follow this simplified form, in which neither "node" nor "edge" is neded:
-# cy.json({elements:[
-#      {data: {id:'a'}},
-#      {data: {id: 'e1', source: 'a', target: 'a'}}
-#      ]})
-#
-# or
-#
-#   network =  {"nodes":[{"data":{"id":"o"},"position":{"x":779.5, "y":500 }}],
-#               "edges":[{"data":{"source":"o","target":"o","id":"e1"},"position":{}}]};
-#
-pre.allocate.graphToJSON <- function(g)
-{
-   if(length(nodes(g)) == 0)
-      return ("{}")
-
-       # allocate more character vectors that we could ever need
-    vector.count <- 10 * (length(edgeNames(g)) + length (nodes(g)))
-    vec <- vector(mode="character", length=vector.count)
-    i <- 1;
-
-    vec[i] <- '{"nodes": ['; i <- i + 1;
-    nodes <- nodes(g)
-    edgeNames <- edgeNames(g)
-    edges <- strsplit(edgeNames, "~")  # a list of pairs
-    edgeNames <- sub("~", "->", edgeNames)
-    names(edges) <- edgeNames
-
-    noa.names <- names(nodeDataDefaults(g))
-    eda.names <- names(edgeDataDefaults(g))
-    nodeCount <- length(nodes)
-    edgeCount <- length(edgeNames)
-
-    for(n in 1:nodeCount){
-       node <- nodes[n]
-       vec[i] <- '{"data": '; i <- i + 1
-       nodeList <- list(id = node)
-       this.nodes.data <- nodeData(g, node)[[1]]
-       if(length(this.nodes.data) > 0)
-          nodeList <- c(nodeList, this.nodes.data)
-       nodeList.json <- toJSON(nodeList, auto_unbox=TRUE)
-       vec[i] <- nodeList.json; i <- i + 1
-       if(all(c("xPos", "yPos") %in% names(nodeDataDefaults(g)))){
-          position.markup <- sprintf(', "position": {"x": %f, "y": %f}',
-                                     nodeData(g, node, "xPos")[[1]],
-                                     nodeData(g, node, "yPos")[[1]])
-          vec[i] <- position.markup
-          i <- i + 1
-          }
-        if(n != nodeCount){
-           vec [i] <- "},"; i <- i + 1 # sprintf("%s},", x)  # another node coming, add a comma
-           }
-       } # for n
-
-    vec [i] <- "}]"; i <- i + 1  # close off the last node, the node array ], the nodes element }
-
-    if(edgeCount > 0){
-       vec[i] <- ', "edges": [' ; i <- i + 1
-       for(e in seq_len(edgeCount)) {
-          vec[i] <- '{"data": '; i <- i + 1
-          edgeName <- edgeNames[e]
-          edge <- edges[[e]]
-          sourceNode <- edge[[1]]
-          targetNode <- edge[[2]]
-          edgeList <- list(id=edgeName, source=sourceNode, target=targetNode)
-          this.edges.data <- edgeData(g, sourceNode, targetNode)[[1]]
-          if(length(this.edges.data) > 0)
-             edgeList <- c(edgeList, this.edges.data)
-          edgeList.json <- toJSON(edgeList, auto_unbox=TRUE)
-          vec[i] <- edgeList.json; i <- i + 1
-          if(e != edgeCount){          # add a comma, ready for the next edge element
-             vec [i] <- '},'; i <- i + 1
-             }
-          } # for e
-      vec [i] <- "}]"; i <- i + 1
-      } # if edgeCount > 0
-
-   vec [i] <- "}"
-   vec.trimmed <- vec [which(vec != "")]
-   printf("%d strings used in constructing json", length(vec.trimmed))
-   paste0(vec.trimmed, collapse=" ")
-
-} # pre.allocate.graphToJSON
-#------------------------------------------------------------------------------------------------------------------------
-# follow this simplified form, in which neither "node" nor "edge" is neded:
-# cy.json({elements:[
-#      {data: {id:'a'}},
-#      {data: {id: 'e1', source: 'a', target: 'a'}}
-#      ]})
-#
-# or
-#
-#   network =  {"nodes":[{"data":{"id":"o"},"position":{"x":779.5, "y":500 }}],
-#               "edges":[{"data":{"source":"o","target":"o","id":"e1"},"position":{}}]};
-#
-old.graphToJSON <- function(g)
-{
-   if(length(nodes(g)) == 0)
-      return ("{}")
-
-    x <- '{"nodes": [';
-    nodes <- nodes(g)
-    edgeNames <- edgeNames(g)
-    edges <- strsplit(edgeNames, "~")  # a list of pairs
-    edgeNames <- sub("~", "->", edgeNames)
-    names(edges) <- edgeNames
-
-    noa.names <- names(nodeDataDefaults(g))
-    eda.names <- names(edgeDataDefaults(g))
-    nodeCount <- length(nodes)
-    edgeCount <- length(edgeNames)
-
-    for(n in 1:nodeCount){
-       node <- nodes[n]
-       x <- sprintf('%s{"data": {"id": "%s"', x, node);
-       this.nodes.data <- nodeData(g, node)[[1]]
-       if(length(this.nodes.data) > 0){
-          noa.json <- toJSON(nodeData(g, node)[[1]], auto_unbox=TRUE)
-          x <- sprintf("%s, %s", x, noa.json)
-          }
-       x <- sprintf('%s}', x)     # close off this node data element
-       if(n != nodeCount)
-           x <- sprintf("%s},", x)  # another node coming, add a comma
-       } # for n
-
-    x <- sprintf("%s}]", x)         # close off the last node, the node array ], the nodes element }
-
-    if(edgeCount > 0){
-       x <- sprintf('%s, "edges": [', x)
-       for(e in seq_len(edgeCount)) {
-          edgeName <- edgeNames[e]
-          edge <- edges[[e]]
-          sourceNode <- edge[[1]]
-          targetNode <- edge[[2]]
-          x <- sprintf('%s {"data": {"id": "%s", "source": "%s", "target": "%s"', x, edgeName, sourceNode, targetNode);
-          x <- sprintf('%s}}', x)     # close off this edge data element
-          if(e != edgeCount)          # add a comma, ready for the next edge element
-             x <- sprintf('%s,', x)
-          } # for e
-       x <- sprintf("%s]", x)         # edge elements now complete, close the array
-        } # if edgeCount > 0
-
-   x <- sprintf("%s}", x)
-
-   x
-
-} # old.graphToJSON
 #------------------------------------------------------------------------------------------------------------------------
 simpleDemoGraph = function ()
 {
