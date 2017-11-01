@@ -59,9 +59,13 @@ setMethod('buildMultiModelGraph', 'trenaViz',
        stopifnot(nrow(model$model) >= 2);  # at least two rows
        stopifnot(is.data.frame(model$regions))  # regulatory regions
        stopifnot("gene" %in% colnames(model$model))
-       stopifnot(all(model.colnames == colnames(model$model)))
+       stopifnot(all(model.colnames %in% colnames(model$model)))
        stopifnot(ncol(model$model) >= 2)  # at least "gene" and some score (usually multiple scores)
-       stopifnot(all(c("motifName", "id", "distance.from.tss", "geneSymbol") %in% colnames(model$regions)))
+       missing.essential.colnames <- setdiff(c("motifName", "id", "distance.from.tss", "geneSymbol"),
+                                             colnames(model$regions))
+       if(length(missing.essential.colnames) > 0)
+          stop(sprintf("essential colnames missing in regulatory regions (motif) table: %s",
+                       paste(missing.essential.colnames, collapse=",")))
        tfs.in.model <- model$model$gene
        tfs.in.regions <- unique(model$regions$geneSymbol)
        stopifnot(sort(tfs.in.model) == sort(tfs.in.regions))

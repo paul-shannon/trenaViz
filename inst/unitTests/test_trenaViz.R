@@ -337,9 +337,10 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
    printf("--- test_buildMultiModelGraph_twoModels")
 
    load(system.file(package="trenaViz", "extdata", "sampleModelAndRegulatoryRegions.RData"))
-
-   colnames(tbl.geneModel) <- gsub(".", "_", colnames(tbl.geneModel), fixed=TRUE)
-   colnames(tbl.geneModel.strong) <- gsub(".", "_", colnames(tbl.geneModel.strong), fixed=TRUE)
+   colnames(tbl.geneModel.strong) <- c("gene", "betaLasso", "lassoPvalue", "pearsonCoeff", "rfScore",
+                                       "betaRidge", "spearmanCoeff", "concordance", "pcaMax")
+   #colnames(tbl.geneModel) <- gsub(".", "_", colnames(tbl.geneModel), fixed=TRUE)
+   #colnames(tbl.geneModel.strong) <- gsub(".", "_", colnames(tbl.geneModel.strong), fixed=TRUE)
 
    #scores.to.keep <- colnames(tbl.geneModel.strong)[1+sample(1:(ncol(tbl.geneModel.strong)-1), 2)]
    #columns.to.keep <- c("gene", scores.to.keep)

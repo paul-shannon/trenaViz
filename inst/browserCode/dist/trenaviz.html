@@ -1682,7 +1682,7 @@ math.intersectLineEllipse = function (x, y, centerX, centerY, ellipseWradius, el
   return [(centerX - x) * lenProportion + x, (centerY - y) * lenProportion + y];
 };
 
-math.checkInEllipse = function (x, y, padding, width, height, centerX, centerY) {
+math.checkInEllipse = function (x, y, width, height, centerX, centerY, padding) {
   x -= centerX;
   y -= centerY;
 
@@ -5213,7 +5213,7 @@ module.exports = Stylesheet;
 "use strict";
 
 
-module.exports = "3.2.4";
+module.exports = "3.2.5";
 
 /***/ }),
 /* 23 */
@@ -13962,7 +13962,7 @@ var defaults = {
   stop: undefined, // callback on layoutstop
   transform: function transform(node, position) {
     return position;
-  } // transform a given node position. Useful for changing flow direction in discrete layouts 
+  } // transform a given node position. Useful for changing flow direction in discrete layouts
 };
 
 function BreadthFirstLayout(options) {
@@ -14146,6 +14146,12 @@ BreadthFirstLayout.prototype.run = function () {
       for (var j = 0; j < _eles.length; j++) {
         var _ele2 = _eles[j];
 
+        if (_ele2 == null) {
+          _eles.splice(j, 1);
+          j--;
+          continue;
+        }
+
         _ele2._private.scratch.breadthfirst = {
           depth: _i4,
           index: j
@@ -14204,7 +14210,7 @@ BreadthFirstLayout.prototype.run = function () {
       var _intEle = _info.intEle;
       var intInfo = _intEle._private.scratch.breadthfirst;
 
-      depths[_info.depth].splice(_info.index, 1); // remove from old depth & index
+      depths[_info.depth][_info.index] = null; // remove from old depth & index (create hole to be cleaned)
 
       // add to end of new depth
       var newDepth = intInfo.depth + 1;
@@ -20233,7 +20239,7 @@ BRp.load = function () {
         r.hoverData.last = near;
       }
 
-      if (down && r.nodeIsDraggable(down)) {
+      if (down) {
 
         if (isOverThresholdDrag) {
           // then we can take action
@@ -20247,8 +20253,8 @@ BRp.load = function () {
             }
 
             goIntoBoxMode();
-          } else {
-            // otherwise drag
+          } else if (down && down.grabbed() && r.nodeIsDraggable(down)) {
+            // drag node
             var justStartedDrag = !r.dragData.didDrag;
 
             if (justStartedDrag) {
@@ -21602,7 +21608,7 @@ BRp.generateEllipse = function () {
     },
 
     checkPoint: function checkPoint(x, y, padding, width, height, centerX, centerY) {
-      return math.checkInEllipse(x, y, padding, width, height, centerX, centerY);
+      return math.checkInEllipse(x, y, width, height, centerX, centerY, padding);
     }
   };
 };
@@ -21626,37 +21632,38 @@ BRp.generateRoundRectangle = function () {
     checkPoint: function checkPoint(x, y, padding, width, height, centerX, centerY) {
 
       var cornerRadius = math.getRoundRectangleRadius(width, height);
+      var diam = cornerRadius * 2;
 
       // Check hBox
-      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width, height - 2 * cornerRadius, [0, -1], padding)) {
+      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width, height - diam, [0, -1], padding)) {
         return true;
       }
 
       // Check vBox
-      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width - 2 * cornerRadius, height, [0, -1], padding)) {
+      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width - diam, height, [0, -1], padding)) {
         return true;
       }
 
       // Check top left quarter circle
-      if (math.checkInEllipse(x, y, centerX - width / 2 + cornerRadius, centerY - height / 2 + cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX - width / 2 + cornerRadius, centerY - height / 2 + cornerRadius, padding)) {
 
         return true;
       }
 
       // Check top right quarter circle
-      if (math.checkInEllipse(x, y, centerX + width / 2 - cornerRadius, centerY - height / 2 + cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX + width / 2 - cornerRadius, centerY - height / 2 + cornerRadius, padding)) {
 
         return true;
       }
 
       // Check bottom right quarter circle
-      if (math.checkInEllipse(x, y, centerX + width / 2 - cornerRadius, centerY + height / 2 - cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX + width / 2 - cornerRadius, centerY + height / 2 - cornerRadius, padding)) {
 
         return true;
       }
 
       // Check bottom left quarter circle
-      if (math.checkInEllipse(x, y, centerX - width / 2 + cornerRadius, centerY + height / 2 - cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX - width / 2 + cornerRadius, centerY + height / 2 - cornerRadius, padding)) {
 
         return true;
       }
@@ -21873,14 +21880,15 @@ BRp.generateBottomRoundrectangle = function () {
     checkPoint: function checkPoint(x, y, padding, width, height, centerX, centerY) {
 
       var cornerRadius = math.getRoundRectangleRadius(width, height);
+      var diam = 2 * cornerRadius;
 
       // Check hBox
-      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width, height - 2 * cornerRadius, [0, -1], padding)) {
+      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width, height - diam, [0, -1], padding)) {
         return true;
       }
 
       // Check vBox
-      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width - 2 * cornerRadius, height, [0, -1], padding)) {
+      if (math.pointInsidePolygon(x, y, this.points, centerX, centerY, width - diam, height, [0, -1], padding)) {
         return true;
       }
 
@@ -21893,13 +21901,13 @@ BRp.generateBottomRoundrectangle = function () {
       }
 
       // Check bottom right quarter circle
-      if (math.checkInEllipse(x, y, centerX + width / 2 - cornerRadius, centerY + height / 2 - cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX + width / 2 - cornerRadius, centerY + height / 2 - cornerRadius, padding)) {
 
         return true;
       }
 
       // Check bottom left quarter circle
-      if (math.checkInEllipse(x, y, centerX - width / 2 + cornerRadius, centerY + height / 2 - cornerRadius, cornerRadius * 2, cornerRadius * 2, padding)) {
+      if (math.checkInEllipse(x, y, diam, diam, centerX - width / 2 + cornerRadius, centerY + height / 2 - cornerRadius, padding)) {
 
         return true;
       }
@@ -32217,6 +32225,9 @@ function setGraph(msg)
    self.cyjs = initializeTrnCytoscape();
    var temporaryFileName = msg.payload.filename;
    var modelNames = msg.payload.modelNames;
+   if(typeof(modelNames) == "string")
+      modelNames = [modelNames];
+
    console.log("modelNames: ");
    console.log(modelNames)
    if(modelNames.length > 1){
@@ -32224,8 +32235,7 @@ function setGraph(msg)
      }
 
    self.modelNames = modelNames;  // make this an attribute of the trenaviz object
-   if(typeof(self.modelNames) == "string")
-      self.modelNames = [self.modelNames];
+   self.currentModelName = modelNames[0];
 
    var status = readNetworkFromFile(temporaryFileName, self.cyjs)
    initializeTrnCytoscapeButtons(self);
@@ -32235,7 +32245,7 @@ function setGraph(msg)
      console.log(self);
      self.cyjs.fit(100);
      console.log("setGraph requests ext style model: " + modelNames[0]);
-     self.nextCyModel(self, modelNames[0]);
+     self.displayCyModel(self, modelNames[0]);
      }, 500);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
@@ -32262,49 +32272,74 @@ function createModelNamesMenu(self, modelNames)
 
    $("#cyMenubarDiv").append(html);
    $("#cyModelSelector").change(function(){
-     var modelName =$(this).find("option:selected").val();
-       self.nextCyModel(self, modelName);
-     });
+       var modelName =$(this).find("option:selected").val();
+       self.displayCyModel(self, modelName);
+       });
 
-   setTimeout(function() {self.nextCyModel(self, modelNames[0])}, 0);
+   setTimeout(function() {self.displayCyModel(self, modelNames[0])}, 0);
 
 } // createModelNamesMenu
 //----------------------------------------------------------------------------------------------------
+function nextCyModelName(self)
+{
+   console.log("--- nextCyModelName: ");
+   console.log(self)
+   checkSignature(self, "nextCyModelName")
+
+   var currentModelNameIndex = self.modelNames.indexOf(self.currentModelName)
+   var nextModelNameIndex = currentModelNameIndex + 1;
+   var lastIndex = self.modelNames.length - 1
+   debugger;
+
+   if(nextModelNameIndex > lastIndex){
+      nextModelNameIndex = 0;
+      }
+
+   var modelName = self.modelNames[nextModelNameIndex]
+   console.log(" next up is model name " + nextModelNameIndex + ": " + modelName);
+
+  return(modelName)
+
+} // nextCyModelName
+//----------------------------------------------------------------------------------------------------
 // not sure why bind does not work on this function, thus necessitating explicit passing of
 // this as self.  (pshannon 9 sep 2017)
-function nextCyModel(self, modelName)
+function displayCyModel(self, modelName)
 {
-   console.log("--- nextCyModel: " + modelName);
+   console.log("--- displayCyModel: " + modelName);
    console.log(self)
-   checkSignature(self, "nextCyModel")
+   checkSignature(self, "displayCyModel")
 
      // make all nodes visible.  some may have been hidden in the previous view
    self.cyjs.nodes().show()
-     // rf_score and pearson_coeff are the current popular node attributes
+     // rfScore and pearsonCoeff are the current popular node attributes
      // for controlling size and color.  set them, for all TF nodes, to zero
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rf_score": 0})})
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson_coeff": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rfScore": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearsonCoeff": 0})})
 
       // transfer all <modelName>.rf_score to simply "rf_score"
-   var noaName = modelName + "." + "rf_score";
-   console.log("--- copying " + noaName + " values to rf_score");
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rf_score":  node.data(noaName)})})
+   var noaName = modelName + "." + "rfScore";
+   console.log("--- copying " + noaName + " values to rfSscore");
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rfScore":  node.data(noaName)})})
 
-   noaName = modelName + "." + "pearson_coeff";
-   console.log("--- copying " + noaName + " values to pearson_coeff");
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson_coeff":       node.data(noaName)})})
+   noaName = modelName + "." + "pearsonCoeff";
+   console.log("--- copying " + noaName + " values to pearsonCoeff");
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearsonCoeff":       node.data(noaName)})})
 
      // now hide all the 0 randomForest TF nodes
-   self.cyjs.nodes().filter(function(node){return(node.data("rf_score") == 0 && node.data("type") == "TF")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("rfScore") == 0 && node.data("type") == "TF")}).hide()
 
      // transfer the "motifInModel" node attribute
    noaName = modelName + "." + "motifInModel";
    self.cyjs.nodes("[type='regulatoryRegion']").map(function(node){node.data({"motifInModel": node.data(noaName)})})
 
-    self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
-						   node.data("type") == "regulatoryRegion")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
+                                                  node.data("type") == "regulatoryRegion")}).hide()
 
-} // nextCyModel
+   $("#cyModelSelector").val(modelName);
+   self.currentModelName = modelName;
+
+} // displayCyModel
 //----------------------------------------------------------------------------------------------------
 function setStyle(msg)
 {
@@ -32319,7 +32354,7 @@ function setStyle(msg)
 
       // load in the node attributes of the next model
       // in this case, setting a new style, emplace the first model
-   self.nextCyModel(self, self.modelNames[0]);
+   self.displayCyModel(self, self.modelNames[0]);
 
    var return_msg = {cmd: msg.callback, status: "success", callback: "", payload: ""};
    hub.send(return_msg);
@@ -32404,23 +32439,30 @@ function initializeTrnCytoscapeButtons(self)
    $("#cyHideUnselectedButton").click(function(){self.cyjs.nodes(":unselected").hide()});
    $("#cyShowAllButton").click(function(){self.cyjs.nodes().show(); self.cyjs.edges().show()});
 
-   //$("#cyCycleThroughModelsButton").click(function(){nextCyModel("rs3875089")});
+   $("#cyCycleThroughModelsButton").click(function(){
+       var nextModelName = self.nextCyModelName(self);
+       console.log("cycle throught to " + nextModelName);
+       self.displayCyModel(self, nextModelName);
+       });
 
 } // initializeTrnCytoscapeButtons
 //-----------------------------------------------------------------------------------------------------
   return({
 
-    signature: "TrenaViz 0.99.5",
+    signature: "TrenaViz 0.99.25",
 
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
-    nextCyModel: nextCyModel.bind(this),
+    displayCyModel: displayCyModel.bind(this),
+    nextCyModelName: nextCyModelName.bind(this),
     hub: hub,
     cyjs: null,
     igvBrowser: null,
-    chromLocString: null
+    chromLocString: null,
+    modelNames: null,
+    currentModelName: null
     });
 
 }); // TrenaViz

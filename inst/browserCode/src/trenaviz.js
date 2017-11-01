@@ -534,6 +534,9 @@ function setGraph(msg)
    self.cyjs = initializeTrnCytoscape();
    var temporaryFileName = msg.payload.filename;
    var modelNames = msg.payload.modelNames;
+   if(typeof(modelNames) == "string")
+      modelNames = [modelNames];
+
    console.log("modelNames: ");
    console.log(modelNames)
    if(modelNames.length > 1){
@@ -541,8 +544,7 @@ function setGraph(msg)
      }
 
    self.modelNames = modelNames;  // make this an attribute of the trenaviz object
-   if(typeof(self.modelNames) == "string")
-      self.modelNames = [self.modelNames];
+   self.currentModelName = modelNames[0];
 
    var status = readNetworkFromFile(temporaryFileName, self.cyjs)
    initializeTrnCytoscapeButtons(self);
@@ -552,7 +554,7 @@ function setGraph(msg)
      console.log(self);
      self.cyjs.fit(100);
      console.log("setGraph requests ext style model: " + modelNames[0]);
-     self.nextCyModel(self, modelNames[0]);
+     self.displayCyModel(self, modelNames[0]);
      }, 500);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
@@ -579,49 +581,73 @@ function createModelNamesMenu(self, modelNames)
 
    $("#cyMenubarDiv").append(html);
    $("#cyModelSelector").change(function(){
-     var modelName =$(this).find("option:selected").val();
-       self.nextCyModel(self, modelName);
-     });
+       var modelName =$(this).find("option:selected").val();
+       self.displayCyModel(self, modelName);
+       });
 
-   setTimeout(function() {self.nextCyModel(self, modelNames[0])}, 0);
+   setTimeout(function() {self.displayCyModel(self, modelNames[0])}, 0);
 
 } // createModelNamesMenu
 //----------------------------------------------------------------------------------------------------
+function nextCyModelName(self)
+{
+   console.log("--- nextCyModelName: ");
+   console.log(self)
+   checkSignature(self, "nextCyModelName")
+
+   var currentModelNameIndex = self.modelNames.indexOf(self.currentModelName)
+   var nextModelNameIndex = currentModelNameIndex + 1;
+   var lastIndex = self.modelNames.length - 1
+
+   if(nextModelNameIndex > lastIndex){
+      nextModelNameIndex = 0;
+      }
+
+   var modelName = self.modelNames[nextModelNameIndex]
+   console.log(" next up is model name " + nextModelNameIndex + ": " + modelName);
+
+  return(modelName)
+
+} // nextCyModelName
+//----------------------------------------------------------------------------------------------------
 // not sure why bind does not work on this function, thus necessitating explicit passing of
 // this as self.  (pshannon 9 sep 2017)
-function nextCyModel(self, modelName)
+function displayCyModel(self, modelName)
 {
-   console.log("--- nextCyModel: " + modelName);
+   console.log("--- displayCyModel: " + modelName);
    console.log(self)
-   checkSignature(self, "nextCyModel")
+   checkSignature(self, "displayCyModel")
 
      // make all nodes visible.  some may have been hidden in the previous view
    self.cyjs.nodes().show()
-     // rf_score and pearson_coeff are the current popular node attributes
+     // rfScore and pearsonCoeff are the current popular node attributes
      // for controlling size and color.  set them, for all TF nodes, to zero
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rf_score": 0})})
-   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearson_coeff": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"rfScore": 0})})
+   self.cyjs.nodes().filter(function(node){return node.data("type") == "TF"}).map(function(node){node.data({"pearsonCoeff": 0})})
 
       // transfer all <modelName>.rf_score to simply "rf_score"
-   var noaName = modelName + "." + "rf_score";
-   console.log("--- copying " + noaName + " values to rf_score");
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rf_score":  node.data(noaName)})})
+   var noaName = modelName + "." + "rfScore";
+   console.log("--- copying " + noaName + " values to rfSscore");
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"rfScore":  node.data(noaName)})})
 
-   noaName = modelName + "." + "pearson_coeff";
-   console.log("--- copying " + noaName + " values to pearson_coeff");
-   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearson_coeff":       node.data(noaName)})})
+   noaName = modelName + "." + "pearsonCoeff";
+   console.log("--- copying " + noaName + " values to pearsonCoeff");
+   self.cyjs.nodes("[type='TF']").map(function(node){node.data({"pearsonCoeff":       node.data(noaName)})})
 
      // now hide all the 0 randomForest TF nodes
-   self.cyjs.nodes().filter(function(node){return(node.data("rf_score") == 0 && node.data("type") == "TF")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("rfScore") == 0 && node.data("type") == "TF")}).hide()
 
      // transfer the "motifInModel" node attribute
    noaName = modelName + "." + "motifInModel";
    self.cyjs.nodes("[type='regulatoryRegion']").map(function(node){node.data({"motifInModel": node.data(noaName)})})
 
-    self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
-						   node.data("type") == "regulatoryRegion")}).hide()
+   self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
+                                                  node.data("type") == "regulatoryRegion")}).hide()
 
-} // nextCyModel
+   $("#cyModelSelector").val(modelName);
+   self.currentModelName = modelName;
+
+} // displayCyModel
 //----------------------------------------------------------------------------------------------------
 function setStyle(msg)
 {
@@ -636,7 +662,7 @@ function setStyle(msg)
 
       // load in the node attributes of the next model
       // in this case, setting a new style, emplace the first model
-   self.nextCyModel(self, self.modelNames[0]);
+   self.displayCyModel(self, self.modelNames[0]);
 
    var return_msg = {cmd: msg.callback, status: "success", callback: "", payload: ""};
    hub.send(return_msg);
@@ -721,23 +747,30 @@ function initializeTrnCytoscapeButtons(self)
    $("#cyHideUnselectedButton").click(function(){self.cyjs.nodes(":unselected").hide()});
    $("#cyShowAllButton").click(function(){self.cyjs.nodes().show(); self.cyjs.edges().show()});
 
-   //$("#cyCycleThroughModelsButton").click(function(){nextCyModel("rs3875089")});
+   $("#cyCycleThroughModelsButton").click(function(){
+       var nextModelName = self.nextCyModelName(self);
+       console.log("cycle throught to " + nextModelName);
+       self.displayCyModel(self, nextModelName);
+       });
 
 } // initializeTrnCytoscapeButtons
 //-----------------------------------------------------------------------------------------------------
   return({
 
-    signature: "TrenaViz 0.99.5",
+    signature: "TrenaViz 0.99.25",
 
     addMessageHandlers: addMessageHandlers,
     initializeUI: initializeUI,
     handleWindowResize: handleWindowResize.bind(this),
     initializeTrnCytoscape: initializeTrnCytoscape,
-    nextCyModel: nextCyModel.bind(this),
+    displayCyModel: displayCyModel.bind(this),
+    nextCyModelName: nextCyModelName.bind(this),
     hub: hub,
     cyjs: null,
     igvBrowser: null,
-    chromLocString: null
+    chromLocString: null,
+    modelNames: null,
+    currentModelName: null
     });
 
 }); // TrenaViz
