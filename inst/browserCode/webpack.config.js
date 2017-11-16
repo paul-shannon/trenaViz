@@ -5,7 +5,8 @@ module.exports = {
   entry: './src/trenaviz.js',
   plugins: [
     new webpack.ProvidePlugin({
-      cytoscape: "cytoscape"
+	cytoscape: "cytoscape",
+	IGV: "igv"
       })],
   module: {
       rules:[

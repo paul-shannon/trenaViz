@@ -11,7 +11,8 @@
   "license": "MIT",
   "dependencies": {
     "browservizjs": "^1.0.0",
-    "cytoscape": "^3.2.1"
+    "cytoscape": "^3.2.1",
+    "igv_js_npm": "github:paul-shannon/igv.js.npm"
     },
   "devDependencies": {
 	"css-loader": "^0.28.0",

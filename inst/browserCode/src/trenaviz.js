@@ -1,6 +1,10 @@
 "use strict";
 var cytoscape = require('cytoscape');
 import css from './css/trenaviz.css';
+var igv = require('igv.js.npm')
+require('igv.js.npm/igv.css')
+//var igv = require('igv')
+//require('igv/igv.css')
 //----------------------------------------------------------------------------------------------------
 var TrenaViz = (function(hub){
 
@@ -210,6 +214,28 @@ function initializeIGV(self, genomeName)
      }; // hg38_options
 
 
+   var mm10_options_doesNotWork = {//locus: "5:88,621,548-88,999,827", //"22:40,000,000-40,200,000",
+         flanking: 2000,
+	 showKaryo: false,
+         showNavigation: true,
+         minimumBases: 5,
+         showRuler: true,
+         reference: {id: "mm10"
+                    // fastaURL: "http://trena.systemsbiology.net/mm10/GRCm38.primary_assembly.genome.fa",
+                    // cytobandURL: "http://trena.systemsbiology.net/mm10/cytoBand.txt"
+                     },
+         tracks: [
+            {name: 'Gencode vM14',
+             url: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz",
+             indexURL: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz.tbi",
+             format: 'gtf',
+             visibilityWindow: 2000000,
+             displayMode: 'EXPANDED'
+             },
+            ]
+       }; // mm10_options_doesNotWork
+
+   /**********/
    var mm10_options = {//locus: "5:88,621,548-88,999,827", //"22:40,000,000-40,200,000",
          flanking: 2000,
 	 showKaryo: false,
@@ -224,12 +250,19 @@ function initializeIGV(self, genomeName)
             {name: 'Gencode vM14',
              url: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz",
              indexURL: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz.tbi",
+             indexed: true,
+             type: 'annotation',
              format: 'gtf',
              visibilityWindow: 2000000,
-             displayMode: 'EXPANDED'
+             displayMode: 'EXPANDED',
+             height: 300,
+             searchable: true
              },
             ]
        }; // mm10_options
+     /********/
+
+
 
    var igvOptions = null;
 
@@ -351,7 +384,7 @@ function addBedTrackFromDataFrame(msg)
                  color: color,
                  type: "annotation"};
 
-   //console.log(JSON.stringify(config));
+   console.log(JSON.stringify(config));
    self.igvBrowser.loadTrack(config);
 
    self.hub.send({cmd: msg.callback, status: "success", callback: "", payload: ""});
