@@ -403,6 +403,9 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color) {
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromDataFrame");
+         # work around the httpuv/igv.js > 1.0.9 bug, in which somehow the last row is dropped.
+         # simply duplicate that last row
+     tbl.bed <- rbind(tbl.bed, tbl.bed[nrow(tbl.bed),])
      temp.filename <- "tmp.bed"
      write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
      payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color)

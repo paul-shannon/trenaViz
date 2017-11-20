@@ -20,12 +20,12 @@ if(!exists("mtx")){
 #------------------------------------------------------------------------------------------------------------------------
 runTests <- function(display=FALSE)
 {
-  testConstructor();
-  testWindowTitle()
-  testPing()
+  test_Constructor();
+  test_WindowTitle()
+  test_Ping()
 
-  testIGV()
-  testLoadAndRemoveTracks()
+  test_IGV()
+  test_LoadAndRemoveTracks()
 
   test_graphToJSON()
 
@@ -38,36 +38,36 @@ runTests <- function(display=FALSE)
 
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
-testConstructor <- function()
+test_Constructor <- function()
 {
-   printf("--- testConstructor")
+   printf("--- test_Constructor")
    checkTrue(ready(tv))
    checkTrue(port(tv) %in% PORT.RANGE)
 
-} # testConstructor
+} # test_Constructor
 #------------------------------------------------------------------------------------------------------------------------
-testWindowTitle <- function()
+test_WindowTitle <- function()
 {
-   printf("--- testWindowTitle")
+   printf("--- test_WindowTitle")
    checkTrue(ready(tv))
    setBrowserWindowTitle(tv, "trenaViz")
    checkEquals(getBrowserWindowTitle(tv), "trenaViz")
    setBrowserWindowTitle(tv, "new title");
    checkEquals(getBrowserWindowTitle(tv), "new title")
 
-} # testWindowTitle
+} # test_WindowTitle
 #------------------------------------------------------------------------------------------------------------------------
-testPing <- function()
+test_Ping <- function()
 {
-   printf("--- testPing")
+   printf("--- test_Ping")
    checkTrue(ready(tv))
    checkEquals(ping(tv), "pong")
 
-} # testPing
+} # test_Ping
 #------------------------------------------------------------------------------------------------------------------------
-testIGV <- function()
+test_IGV <- function()
 {
-   printf("--- testIGV")
+   printf("--- test_IGV")
    setGenome(tv, "hg38")
    Sys.sleep(5);
    showGenomicRegion(tv, "AQP4")
@@ -75,7 +75,40 @@ testIGV <- function()
    chromLocString <- getGenomicRegion(tv)
    checkTrue(grepl("chr18:", chromLocString));
 
-} # testIGV
+} # test_IGV
+#------------------------------------------------------------------------------------------------------------------------
+test_igvLoadLoadBedFileLostLine <- function()
+{
+   printf("--- test_igvLoadLoadBedFileLostLine")
+   setGenome(tv, "hg38")
+   Sys.sleep(5);
+   showGenomicRegion(tv, "AQP4")
+   Sys.sleep(5);
+   chromLocString <- getGenomicRegion(tv)
+   checkTrue(grepl("chr18:", chromLocString));
+
+   showGenomicRegion(tv, "chr18:26,862,301-26,862,412")
+   tbl.bed <- data.frame(chrom=rep("chr18", 3),
+                         start=c(26862347, 26862357, 26862367),
+                           end=c(26862352, 26862362, 26862372),
+                         stringsAsFactors=FALSE)
+   addBedTrackFromDataFrame(tv, "3 regions", tbl.bed, "EXPANDED", color="darkred")
+      # visual inspection needed at this point: are all three regions displayed?
+   checkTrue(file.exists("tmp.bed"))
+   tbl.restored <- read.table("tmp.bed", sep="\t", as.is=TRUE)
+      # we see 4 rows, not 3, because the workaround for the httuv/igv.js > 1.0.9 bug duplicates the last line
+   checkEquals(dim(tbl.restored), c(4,3))
+   checkEquals(as.character(lapply(tbl.restored, class)), c("character", "integer", "integer"))
+
+   # try this in javascript, directly in the browser
+   # tv.igvBrowser.loadTrack({format:"bed", name: "test", url: window.location.href + "?tmp.bed", indexed: false})
+   # uri = "http://trena.systemsbiology.net/hg38/tmp.bed"
+   # tv.igvBrowser.loadTrack({format:"bed", name: "test", url: uri, indexed: false})
+   # showGenomicRegion(tv, "chr18:26,860,587-26,861,321")
+   # all five regions show up.   this uses the apache server running on whovian.
+   # thus the error seems to be only on the httpuv server, and in the python jupyter nbserver.
+
+} # test_igvLoadLoadBedFileLostLine
 #------------------------------------------------------------------------------------------------------------------------
 test_graphToJSON <- function()
 {
@@ -139,9 +172,9 @@ no_testGraph <- function()
 
 } # no_testGraph
 #------------------------------------------------------------------------------------------------------------------------
-testLoadAndRemoveTracks <- function()
+test_LoadAndRemoveTracks <- function()
 {
-   printf("--- testLoadAndRemoveTracks")
+   printf("--- test_LoadAndRemoveTracks")
 
    raiseTab(tv, "IGV")
 
@@ -158,8 +191,9 @@ testLoadAndRemoveTracks <- function()
                          name=LETTERS[1:segments],
                          score=runif(segments, -1, 1),
                          stringsAsFactors=FALSE)
-
-   addBedTrackFromDataFrame(tv, "tbl.bed", tbl.bed, displayMode="EXPANDED", color="darkRed")
+   tbl.bed.sorted <- tbl.bed[order(tbl.bed$start, decreasing=FALSE),]
+   tbl.bed.dupLastRow <- rbind(tbl.bed.sorted, tbl.bed.sorted[nrow(tbl.bed.sorted),])
+   addBedTrackFromDataFrame(tv, "tbl.bed.dupLastRow", tbl.bed.dupLastRow, displayMode="EXPANDED", color="darkRed")
    showGenomicRegion(tv, sprintf("chr18:%d-%d", min(tbl.bed$start) - 10, max(tbl.bed$end) + 10))
 
    tbl.bedGraph <- tbl.bed[, c(1,2,3,5,4)]
@@ -182,7 +216,7 @@ testLoadAndRemoveTracks <- function()
 
 
 
-} # testLoadAndRemoveTracks
+} # test_LoadAndRemoveTracks
 #------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {

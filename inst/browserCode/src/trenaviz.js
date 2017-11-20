@@ -208,7 +208,8 @@ function initializeIGV(self, genomeName)
          indexURL: "//s3.amazonaws.com/igv.broadinstitute.org/annotations/hg38/genes/gencode.v24.annotation.sorted.gtf.gz.tbi",
          format: 'gtf',
          visibilityWindow: 2000000,
-         displayMode: 'EXPANDED'
+         displayMode: 'EXPANDED',
+         height: 300
          },
         ]
      }; // hg38_options
