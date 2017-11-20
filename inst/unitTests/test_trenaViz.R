@@ -25,7 +25,8 @@ runTests <- function(display=FALSE)
   test_Ping()
 
   test_IGV()
-  test_LoadAndRemoveTracks()
+  test_loadAndRemoveTracks()
+  test_igvLoadLoadBedFileLostLine()
 
   test_graphToJSON()
 
@@ -172,13 +173,14 @@ no_testGraph <- function()
 
 } # no_testGraph
 #------------------------------------------------------------------------------------------------------------------------
-test_LoadAndRemoveTracks <- function()
+test_loadAndRemoveTracks <- function()
 {
-   printf("--- test_LoadAndRemoveTracks")
+   printf("--- test_loadAndRemoveTracks")
 
    raiseTab(tv, "IGV")
 
    setBrowserWindowTitle(tv, "test load tracks")
+   removeTracksByName(tv, getTrackNames(tv)[-1])
    checkEquals(getTrackNames(tv), "Gencode v24")
 
    segments <- 5
@@ -192,8 +194,7 @@ test_LoadAndRemoveTracks <- function()
                          score=runif(segments, -1, 1),
                          stringsAsFactors=FALSE)
    tbl.bed.sorted <- tbl.bed[order(tbl.bed$start, decreasing=FALSE),]
-   tbl.bed.dupLastRow <- rbind(tbl.bed.sorted, tbl.bed.sorted[nrow(tbl.bed.sorted),])
-   addBedTrackFromDataFrame(tv, "tbl.bed.dupLastRow", tbl.bed.dupLastRow, displayMode="EXPANDED", color="darkRed")
+   addBedTrackFromDataFrame(tv, "tbl.bed.sorted", tbl.bed.sorted, displayMode="EXPANDED", color="darkRed")
    showGenomicRegion(tv, sprintf("chr18:%d-%d", min(tbl.bed$start) - 10, max(tbl.bed$end) + 10))
 
    tbl.bedGraph <- tbl.bed[, c(1,2,3,5,4)]
@@ -201,9 +202,9 @@ test_LoadAndRemoveTracks <- function()
                                  minValue=min(tbl.bedGraph$score), maxValue=max(tbl.bedGraph$score),
                                  displayMode="EXPANDED")
 
-   checkEquals(sort(getTrackNames(tv)), c("Gencode v24",  "tbl.bed", "tbl.bedGraph"))
+   checkEquals(sort(getTrackNames(tv)), c("Gencode v24",  "tbl.bed.sorted", "tbl.bedGraph"))
    Sys.sleep(3)
-   removeTracksByName(tv, c("tbl.bed", "tbl.bedGraph"))
+   removeTracksByName(tv, c("tbl.bed.sorted", "tbl.bedGraph"))
    checkEquals(getTrackNames(tv), "Gencode v24")
 
    tbl.bedGraph2 <- tbl.bedGraph
@@ -214,9 +215,7 @@ test_LoadAndRemoveTracks <- function()
 
    checkEquals(sort(getTrackNames(tv)), c("Gencode v24", "tbl.bedGraph2"))
 
-
-
-} # test_LoadAndRemoveTracks
+} # test_loadAndRemoveTracks
 #------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {
