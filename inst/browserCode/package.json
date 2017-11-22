@@ -5,14 +5,18 @@
   "main": "trenaviz.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
+     },
   "keywords": [],
   "author": "Paul Shannon",
   "license": "MIT",
+   "repository": {
+      "type": "git",
+      "url": "git://github.com/paul-shannon/trenaViz.git"
+      },
   "dependencies": {
     "browservizjs": "^1.0.0",
     "cytoscape": "^3.2.1",
-    "igv": "0.1.1"
+    "igv_js_npm": "github:paul-shannon/igv.js.npm"
     },
   "devDependencies": {
 	"css-loader": "^0.28.0",

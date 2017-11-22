@@ -98,7 +98,7 @@ test_igvLoadLoadBedFileLostLine <- function()
    checkTrue(file.exists("tmp.bed"))
    tbl.restored <- read.table("tmp.bed", sep="\t", as.is=TRUE)
       # we see 4 rows, not 3, because the workaround for the httuv/igv.js > 1.0.9 bug duplicates the last line
-   checkEquals(dim(tbl.restored), c(4,3))
+   checkEquals(dim(tbl.restored), c(3,3))
    checkEquals(as.character(lapply(tbl.restored, class)), c("character", "integer", "integer"))
 
    # try this in javascript, directly in the browser
