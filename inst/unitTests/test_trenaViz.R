@@ -126,10 +126,10 @@ test_graphToJSON <- function()
 
    targetGene <- "TCF7"
    model <- list(tcf7=list(model=tbl.model, regions=tbl.reg))
-   g <- buildMultiModelGraph(tv, targetGene, model)
+   g <- buildMultiModelGraph(targetGene, model)
 
    xCoordinate.span <- 1500
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=xCoordinate.span)
+   g.lo <- addGeneModelLayout(g, xPos.span=xCoordinate.span)
    g.json <- trenaViz:::.graphToJSON(g.lo)
 
    checkEquals(class(g.json), "character")
@@ -226,7 +226,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model))
    targetGene <- "TCF7"
 
-   g <- buildMultiModelGraph(tv, targetGene, models)
+   g <- buildMultiModelGraph(targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(models[[1]]$regions$id)
    tfNodes <- unique(models[[1]]$regions$geneSymbol)
@@ -237,7 +237,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 
    checkTrue(!any(is.null(unlist(nodeData(g), use.names=FALSE))))
 
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)
@@ -269,7 +269,7 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model.chopped))
    targetGene <- "TCF7"
 
-   g <- buildMultiModelGraph(tv, targetGene, models)
+   g <- buildMultiModelGraph(targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(models[[1]]$regions$id)
    tfNodes <- unique(models[[1]]$regions$geneSymbol)
@@ -294,7 +294,7 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
    checkTrue(all(standard.attributes %in% noa.names))
    checkTrue(all(sprintf("tcf7.%s", standard.attributes) %in% noa.names))
 
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)
@@ -302,7 +302,7 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
    if(display){
      browser()
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(system.file(package="trenaUtilities", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -324,7 +324,7 @@ test_buildMultiModelGraph_oneModel_allScores <- function(display=FALSE)
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model.chopped))
    targetGene <- "TCF7"
 
-   g <- buildMultiModelGraph(tv, targetGene, models)
+   g <- buildMultiModelGraph(targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(models[[1]]$regions$id)
    tfNodes <- unique(models[[1]]$regions$geneSymbol)
@@ -349,7 +349,7 @@ test_buildMultiModelGraph_oneModel_allScores <- function(display=FALSE)
    checkTrue(all(standard.attributes %in% noa.names))
    checkTrue(all(sprintf("tcf7.%s", standard.attributes) %in% noa.names))
 
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)
@@ -392,7 +392,7 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
    targetGene <- "TCF7"
 
-   g <- buildMultiModelGraph(tv, targetGene, models)
+   g <- buildMultiModelGraph(targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(models[[1]]$regions$id)
    tfNodes <- unique(models[[1]]$regions$geneSymbol)
@@ -437,7 +437,7 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
    checkTrue(all(unlist(lapply(attributes, function(attribute)
                                   length(grep(sprintf("^%s", attribute), names(nodeDataDefaults(g)))) == 1))))
 
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)
@@ -617,13 +617,13 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
                   promoter_5000_2000=list(regions=tbl.fp2,   model=tbl.geneModel.2)
                   )
 
-   g <- buildMultiModelGraph(tv, targetGene, models)
+   g <- buildMultiModelGraph(targetGene, models)
    nodesInGraph <- nodes(g)
    regionNodes <- unique(c(models[[1]]$regions$id, models[[2]]$regions$id))
    tfNodes     <- unique(c(models[[1]]$model$gene, models[[2]]$model$gene))
    checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
 
-   g.lo <- addGeneModelLayout(tv, g, xPos.span=1500)
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
    min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
    max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
    checkEquals(abs(max.xPos - min.xPos), 1500)

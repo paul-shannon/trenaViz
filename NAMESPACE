@@ -1,8 +1,6 @@
 exportClasses(trenaViz)
 
 exportMethods (
-   buildMultiModelGraph,
-   addGeneModelLayout,
    ping,
    raiseTab,
    getSelection,
@@ -23,7 +21,9 @@ exportMethods (
    )
 
 export(
-   trenaViz
+   trenaViz,
+   buildMultiModelGraph,
+   addGeneModelLayout
    )
 
 importClassesFrom(methods, character, integer)
