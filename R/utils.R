@@ -24,6 +24,19 @@ buildMultiModelGraph <- function (targetGene, models)
                        paste(missing.essential.colnames, collapse=",")))
        tfs.in.model <- model$model$gene
        tfs.in.regions <- unique(model$regions$geneSymbol)
+
+       #printf("---- tfs.in.model: ")
+       #print(tfs.in.model)
+
+       #printf("---- tfs.in.regions: ")
+       #print(tfs.in.regions)
+
+       #printf("---- setdiff(tfs.in.model, tfs.in.regions)")
+       #print(setdiff(tfs.in.model, tfs.in.regions))
+
+       #printf("---- setdiff(tfs.in.regions, tfs.in.model)")
+       #print(setdiff(tfs.in.regions, tfs.in.model))
+
        stopifnot(sort(tfs.in.model) == sort(tfs.in.regions))
        } # for model
 
