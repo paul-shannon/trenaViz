@@ -6,8 +6,10 @@ library(MotifDb)
 printf <- function(...) print(noquote(sprintf(...)))
 #------------------------------------------------------------------------------------------------------------------------
 PORT.RANGE <- 8000:8020
-if(!exists("tv"))
+if(!exists("tv")){
    tv <- trenaViz(PORT.RANGE, quiet=TRUE);
+   setGenome(tv, "hg38")
+   }
 #------------------------------------------------------------------------------------------------------------------------
 if(!exists("mtx")){
     load(system.file(package="trena", "extdata/ampAD.154genes.mef2cTFs.278samples.RData"))
@@ -36,6 +38,8 @@ runTests <- function(display=FALSE)
   test_buildMultiModelGraph_twoModels()
 
   test_buildMultiModelGraph_twoModels_two_promoterSpans(display=TRUE)
+
+  test_buildMultiModelGraph_twoModels_nonOverlappingRegions(display=TRUE)
 
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
@@ -659,6 +663,56 @@ test_geneModelLayout <- function()
 
 } # test_geneModelLayout
 #------------------------------------------------------------------------------------------------------------------------
+# this tests for a bug identified on (4 dec 2017): regulatory region nodes (i.e., footprint nodes)
+# are not shared between the two models used here, yet one such node appeared in both trn (rcyjs)
+# views.   now fixed.
+test_buildMultiModelGraph_twoModels_nonOverlappingRegions <- function(display)
+{
+   printf("--- test_buildMultiModelGraph_twoModels_nonOverlappingRegions")
 
+   print(load(system.file(package="trenaViz", "extdata", "disjointModelAndRegulatoryRegions.RData")))
+   targetGene <- "COL1A1"
+
+   modelList <- list(left=list(model=tbl.modelLeft,   regions=tbl.fpLeft),
+                     right=list(model=tbl.modelRight, regions=tbl.fpRight))
+
+   g <- buildMultiModelGraph(targetGene, modelList)
+
+     # though buildMultiModelGraph ignores regulatory regions mapped to
+     # tfs NOT in the gene model, we eliminate them explicitly here from
+     # both tbl.fpLeft and tbl.fpRight so that we can check the bookkeeping
+
+   nodesInGraph <- nodes(g)
+   tbl.fpLeft.trimmed <- subset(tbl.fpLeft, geneSymbol %in% tbl.modelLeft$gene)
+   tbl.fpRight.trimmed <- subset(tbl.fpRight, geneSymbol %in% tbl.modelRight$gene)
+
+   regionNodes <- unique(c(tbl.fpLeft.trimmed$id, tbl.fpRight.trimmed$id))
+   tfNodes     <- unique(c(modelList[[1]]$model$gene, modelList[[2]]$model$gene))
+   nodesInGraph <- nodes(g)
+   checkEquals(length(nodesInGraph), length(regionNodes) + length(tfNodes) + length(targetGene))
+
+   g.lo <- addGeneModelLayout(g, xPos.span=1500)
+   min.xPos <- min(as.numeric(nodeData(g.lo, attr="xPos")))
+   max.xPos <- max(as.numeric(nodeData(g.lo, attr="xPos")))
+   checkEquals(abs(max.xPos - min.xPos), 1500)
+
+      # regulatory regions, in these two locationally disjoint models
+      # should not be shared:
+
+   regRegion.nodes <- names(which(nodeData(g, attr="type") == "regulatoryRegion"))
+   left.regRegionNodes <- names(which(nodeData(g, regRegion.nodes, attr="left.motifInModel")==TRUE))
+   right.regRegionNodes <- names(which(nodeData(g, regRegion.nodes, attr="right.motifInModel")==TRUE))
+   checkEquals(length(intersect(left.regRegionNodes, right.regRegionNodes)), 0)
+   checkEquals(length(c(left.regRegionNodes, right.regRegionNodes)),
+               length(regRegion.nodes))
+
+   if(display){
+     setGraph(tv, g.lo, names(modelList))
+     setStyle(tv, "style.js")
+     Sys.sleep(3); fit(tv)
+     }
+
+} # test_buildMultiModelGraph_twoModels_nonOverlappingRegions
+#------------------------------------------------------------------------------------------------------------------------
 if(!interactive())
     runTests()

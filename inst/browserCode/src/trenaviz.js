@@ -374,6 +374,8 @@ function addBedTrackFromDataFrame(msg)
    var bedFileName = msg.payload.bedFileName;
    var displayMode = msg.payload.displayMode;
    var color = msg.payload.color;
+   var trackHeight = msg.payload.trackHeight;
+
    var url = window.location.href + "?" + bedFileName;
 
    var config = {format: "bed",
@@ -383,6 +385,7 @@ function addBedTrackFromDataFrame(msg)
                  displayMode: displayMode,
                  sourceType: "file",
                  color: color,
+		 height: trackHeight,
                  type: "annotation"};
 
    console.log(JSON.stringify(config));
@@ -406,6 +409,7 @@ function addBedGraphTrackFromDataFrame(msg)
    var color = msg.payload.color;
    var minValue = msg.payload.min
    var maxValue = msg.payload.max
+   var trackHeight = msg.payload.trackHeight;
 
    var url = window.location.href + "?" + bedFileName;
 
@@ -418,6 +422,7 @@ function addBedGraphTrackFromDataFrame(msg)
                  displayMode: displayMode,
                  sourceType: "file",
                  color: color,
+                 height: trackHeight,
                  type: "wig"};
 
    self.igvBrowser.loadTrack(config);
@@ -615,7 +620,8 @@ function createModelNamesMenu(self, modelNames)
 
    $("#cyMenubarDiv").append(html);
    $("#cyModelSelector").change(function(){
-       var modelName =$(this).find("option:selected").val();
+       var modelName = $(this).find("option:selected").val();
+       self.currentModelName = modelName;  // store the new value
        self.displayCyModel(self, modelName);
        });
 
@@ -625,20 +631,30 @@ function createModelNamesMenu(self, modelNames)
 //----------------------------------------------------------------------------------------------------
 function nextCyModelName(self)
 {
-   console.log("--- nextCyModelName: ");
-   console.log(self)
-   checkSignature(self, "nextCyModelName")
+   console.log("==================  entering function nextCyModelName");
+   console.log("    currentModelName, before change: " + self.currentModelName);
 
+   checkSignature(self, "nextCyModelName")
    var currentModelNameIndex = self.modelNames.indexOf(self.currentModelName)
    var nextModelNameIndex = currentModelNameIndex + 1;
    var lastIndex = self.modelNames.length - 1
+
+   console.log("--- currentModelNameIndex: " + currentModelNameIndex)
+   console.log("--- nextModelNameIndex:    " + nextModelNameIndex)
+   console.log("--- lastIndex:             " + lastIndex)
 
    if(nextModelNameIndex > lastIndex){
       nextModelNameIndex = 0;
       }
 
+   console.log("--- after off-the-end test, nextModelNameIndex:    " + nextModelNameIndex)
+
    var modelName = self.modelNames[nextModelNameIndex]
    console.log(" next up is model name " + nextModelNameIndex + ": " + modelName);
+
+  self.currentModelName = modelName;  // store the new value
+  console.log("==================  entering function nextCyModelName");
+  console.log("    currentModelName, after change: " + self.currentModelName);
 
   return(modelName)
 
@@ -649,7 +665,7 @@ function nextCyModelName(self)
 function displayCyModel(self, modelName)
 {
    console.log("--- displayCyModel: " + modelName);
-   console.log(self)
+   //console.log(self)
    checkSignature(self, "displayCyModel")
 
      // make all nodes visible.  some may have been hidden in the previous view
@@ -675,11 +691,11 @@ function displayCyModel(self, modelName)
    noaName = modelName + "." + "motifInModel";
    self.cyjs.nodes("[type='regulatoryRegion']").map(function(node){node.data({"motifInModel": node.data(noaName)})})
 
-   self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == "FALSE" &&
+   self.cyjs.nodes().filter(function(node){return(node.data("motifInModel") == false &&
                                                   node.data("type") == "regulatoryRegion")}).hide()
 
    $("#cyModelSelector").val(modelName);
-   self.currentModelName = modelName;
+   // self.currentModelName = modelName;     // store the new value
 
 } // displayCyModel
 //----------------------------------------------------------------------------------------------------
@@ -781,11 +797,14 @@ function initializeTrnCytoscapeButtons(self)
    $("#cyHideUnselectedButton").click(function(){self.cyjs.nodes(":unselected").hide()});
    $("#cyShowAllButton").click(function(){self.cyjs.nodes().show(); self.cyjs.edges().show()});
 
-   $("#cyCycleThroughModelsButton").click(function(){
-       var nextModelName = self.nextCyModelName(self);
-       console.log("cycle throught to " + nextModelName);
-       self.displayCyModel(self, nextModelName);
-       });
+    if(!self.cycleModelMenuInitialized){
+      $("#cyCycleThroughModelsButton").click(function(){
+          var nextModelName = self.nextCyModelName(self);
+          console.log("cycle through to " + nextModelName);
+          self.displayCyModel(self, nextModelName);
+          });
+      self.cycleModelMenuInitialized = true;
+      } // if initialized
 
 } // initializeTrnCytoscapeButtons
 //-----------------------------------------------------------------------------------------------------
@@ -804,7 +823,8 @@ function initializeTrnCytoscapeButtons(self)
     igvBrowser: null,
     chromLocString: null,
     modelNames: null,
-    currentModelName: null
+    currentModelName: null,
+    cycleModelMenuInitialized: false
     });
 
 }); // TrenaViz

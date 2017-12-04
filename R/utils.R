@@ -8,6 +8,7 @@ buildMultiModelGraph <- function (targetGene, models)
       # eg, they all have randomForest and lasso
       # detect disagreement across models, stop if found
     model.colnames <- colnames(models[[1]]$model)
+    all.regulatoryRegions <- c()
 
     for(model in models){
        stopifnot(sort(names(model)) == c("model", "regions"))
@@ -23,7 +24,9 @@ buildMultiModelGraph <- function (targetGene, models)
           stop(sprintf("essential colnames missing in regulatory regions (motif) table: %s",
                        paste(missing.essential.colnames, collapse=",")))
        tfs.in.model <- model$model$gene
+       model$regions
        tfs.in.regions <- unique(model$regions$geneSymbol)
+
 
        #printf("---- tfs.in.model: ")
        #print(tfs.in.model)
@@ -37,7 +40,7 @@ buildMultiModelGraph <- function (targetGene, models)
        #printf("---- setdiff(tfs.in.regions, tfs.in.model)")
        #print(setdiff(tfs.in.regions, tfs.in.model))
 
-       stopifnot(sort(tfs.in.model) == sort(tfs.in.regions))
+       stopifnot(all(tfs.in.model %in% tfs.in.regions))
        } # for model
 
 
@@ -96,63 +99,65 @@ buildMultiModelGraph <- function (targetGene, models)
      #--------------------------------------------------------------------------------
 
     tfs <- c()
-    regulatoryRegions <- c()
+    all.regulatoryRegions <- c()
 
       # collect all the tf and regulatory region nodes
 
     for(model in models){
        tbl.model <- model$model
        tfs <- unique(c(tfs, tbl.model$gene))
-       tbl.reg <- model$regions
-       regulatoryRegions <- unique(c(regulatoryRegions, tbl.reg$id))
+       tbl.reg <- subset(model$regions, geneSymbol %in% tfs)  # just include regions which have TF in model
+       all.regulatoryRegions <- unique(c(all.regulatoryRegions, tbl.reg$id))
        } # for model
 
-    #printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(regulatoryRegions))
+    printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(all.regulatoryRegions))
 
-    all.nodes <- unique(c(targetGene, tfs, regulatoryRegions))
+    all.nodes <- unique(c(targetGene, tfs, all.regulatoryRegions))
     g <- addNode(all.nodes, g)
 
-    #printf("--- browing after addNode in trenaViz::buildMultiModelGraph")
-    #browser()
     nodeData(g, targetGene, "type") <- "targetGene"
     nodeData(g, tfs, "type")         <- "TF"
-    nodeData(g, regulatoryRegions, "type")  <- "regulatoryRegion"
+    nodeData(g, all.regulatoryRegions, "type")  <- "regulatoryRegion"
     nodeData(g, all.nodes, "label")  <- all.nodes
 
       # add edges, edge attribute, and the constant attributes for all of the regulatoryRegion nodes
 
     for(model in models){
-       tfs <- model$regions$geneSymbol
-       regRegions <- model$regions$id
-       suppressWarnings(g <- addEdge(tfs, regRegions, g))
-       edgeData(g,  tfs, regRegions, "edgeType") <- "bindsTo"
-       suppressWarnings(g <- addEdge(regRegions, targetGene, g))
-       edgeData(g, regRegions, targetGene, "edgeType") <- "regulatorySiteFor"
-       tokensList <- strsplit(tbl.reg$id, "-")
+       tbl.model <- model$model
+       tbl.regions <- model$regions
+       tbl.regions <- subset(tbl.regions, geneSymbol %in% tbl.model$gene)
+       tfs <- tbl.regions$geneSymbol
+       regulatoryRegions.thisModel <- tbl.regions$id
+       suppressWarnings(g <- addEdge(tfs, regulatoryRegions.thisModel, g))
+       edgeData(g,  tfs, regulatoryRegions.thisModel, "edgeType") <- "bindsTo"
+       suppressWarnings(g <- addEdge(regulatoryRegions.thisModel, targetGene, g))
+       edgeData(g, regulatoryRegions.thisModel, targetGene, "edgeType") <- "regulatorySiteFor"
+       tokensList <- strsplit(tbl.regions$id, "-")
        motif.labels <- unlist(lapply(tokensList, function(tokens) tokens[length(tokens)]))
-       nodeData(g, tbl.reg$id, "label") <- motif.labels
-       nodeData(g, tbl.reg$id, "distance") <- tbl.reg$distance.from.tss
-       nodeData(g, tbl.reg$id, "motif") <- tbl.reg$motifName
+       nodeData(g, tbl.regions$id, "label") <- motif.labels
+       nodeData(g, tbl.regions$id, "distance") <- tbl.regions$distance.from.tss
+       nodeData(g, tbl.regions$id, "motif") <- tbl.regions$motifName
        } # for model
 
       # now copy in the first model's tf node data
+      # and each of the model's tf and regRegion node data in turn
 
-    #tbl.model <- models[[1]]$model
-
-      # now copy in each of the model's tf and regRegion node data in turn
-    #browser()
     model.names <- names(models)
+
+
     for(model.name in model.names){
        tbl.model <- models[[model.name]]$model
+       tfs <- tbl.model$gene
+       tbl.regions <- models[[model.name]]$regions
+       tbl.regions <- subset(tbl.regions, geneSymbol %in% tfs)
        for(optional.noa.name in names(optional.node.attribute.specs)){
           noa.name <- sprintf("%s.%s", model.name, optional.noa.name)
           nodeData(g, tbl.model$gene, attr=noa.name) <- tbl.model[, optional.noa.name]
           }
-       tbl.regRegions <- models[[model.name]]$regions
-       regRegionsInThisModel <- unique(tbl.regRegions$id)
-       regRegionsNotInThisModel <- setdiff(regulatoryRegions, regRegionsInThisModel)
+       regRegionsInThisModel <- unique(tbl.regions$id)
+       regRegionsNotInThisModel <- setdiff(all.regulatoryRegions, regRegionsInThisModel)
        attributeName <- sprintf("%s.%s", model.name, "motifInModel")
-       nodeData(g, regRegionsInThisModel, attr=attributeName) <- TRUE
+       nodeData(g, regRegionsInThisModel,    attr=attributeName) <- TRUE
        nodeData(g, regRegionsNotInThisModel, attr=attributeName) <- FALSE
        } # for model.name
 

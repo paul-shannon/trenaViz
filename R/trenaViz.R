@@ -22,13 +22,14 @@ setGeneric('getTrackNames',        signature='obj', function(obj) standardGeneri
 setGeneric('removeTracksByName',   signature='obj', function(obj, trackNames) standardGeneric('removeTracksByName'))
 
 setGeneric('addBedTrackFromDataFrame',  signature='obj',
-                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray")
+                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray", trackHeight=200)
                    standardGeneric('addBedTrackFromDataFrame'))
 setGeneric('addBedTrackFromHostedFile',   signature='obj',
                       function(obj, trackName, uri, index.uri=NA, displayMode="COLLAPSED", color="lightgray")
                    standardGeneric('addBedTrackFromHostedFile'))
 setGeneric('addBedGraphTrackFromDataFrame', signature='obj',
-                      function(obj, trackName, tbl.bed, displayMode="COLLAPSED",minValue=NA, maxValue=NA, color)
+           function(obj, trackName, tbl.bed, displayMode="COLLAPSED",minValue=NA, maxValue=NA,
+                    color="lightgray", trackHeight=200)
                       standardGeneric('addBedGraphTrackFromDataFrame'))
 
 setGeneric('selectNodes',         signature='obj', function(obj, nodeIDs) standardGeneric('selectNodes'))
@@ -186,12 +187,14 @@ setMethod('removeTracksByName', 'trenaViz',
 #----------------------------------------------------------------------------------------------------
 setMethod('addBedTrackFromDataFrame', 'trenaViz',
 
-  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color) {
+  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color, trackHeight=100) {
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromDataFrame");
      temp.filename <- "tmp.bed"
+     printf("trenaViz.R about to write temporary bed file to %s", temp.filename);
      write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
-     payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color)
+     payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color,
+                     trackHeight=trackHeight)
      send(obj, list(cmd="addBedTrackFromDataFrame", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
@@ -202,7 +205,7 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
 #----------------------------------------------------------------------------------------------------
 setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
 
-  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray") {
+  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray", trackHeight=100) {
      if(!obj@quiet)
         printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
      found.chromosome.column <- any(grepl("^chr", colnames(tbl.bed), ignore.case=TRUE))
@@ -228,7 +231,8 @@ setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
                      displayMode=displayMode,
                      color=color,
                      min=minValue,
-                     max=maxValue)
+                     max=maxValue,
+                     trackHeight=trackHeight)
 
      send(obj, list(cmd="addBedGraphTrackFromDataFrame", callback="handleResponse", status="request", payload=payload))
      while (!browserResponseReady(obj)){
