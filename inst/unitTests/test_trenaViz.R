@@ -22,9 +22,9 @@ if(!exists("mtx")){
 #------------------------------------------------------------------------------------------------------------------------
 runTests <- function(display=FALSE)
 {
-  test_Constructor();
-  test_WindowTitle()
-  test_Ping()
+  test_constructor();
+  test_windowTitle()
+  test_ping()
 
   test_IGV()
   test_loadAndRemoveTracks()
@@ -43,32 +43,34 @@ runTests <- function(display=FALSE)
 
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
-test_Constructor <- function()
+test_constructor <- function()
 {
-   printf("--- test_Constructor")
+   printf("--- test_constructor")
+   tv <- trenaViz(PORT.RANGE, quiet=TRUE);
+
    checkTrue(ready(tv))
    checkTrue(port(tv) %in% PORT.RANGE)
 
-} # test_Constructor
+} # test_constructor
 #------------------------------------------------------------------------------------------------------------------------
-test_WindowTitle <- function()
+test_windowTitle <- function()
 {
-   printf("--- test_WindowTitle")
+   printf("--- test_windowTitle")
    checkTrue(ready(tv))
    setBrowserWindowTitle(tv, "trenaViz")
    checkEquals(getBrowserWindowTitle(tv), "trenaViz")
    setBrowserWindowTitle(tv, "new title");
    checkEquals(getBrowserWindowTitle(tv), "new title")
 
-} # test_WindowTitle
+} # test_windowTitle
 #------------------------------------------------------------------------------------------------------------------------
-test_Ping <- function()
+test_ping <- function()
 {
-   printf("--- test_Ping")
+   printf("--- test_ping")
    checkTrue(ready(tv))
    checkEquals(ping(tv), "pong")
 
-} # test_Ping
+} # test_ping
 #------------------------------------------------------------------------------------------------------------------------
 test_IGV <- function()
 {
