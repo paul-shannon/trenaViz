@@ -150,7 +150,7 @@ function setGenome(msg)
    var self = this;
    checkSignature(self, "setGenome")
 
-   var supportedGenomes = ["hg19", "hg38", "mm10"];
+   var supportedGenomes = ["hg19", "hg38", "mm10", "tair10"];
    var genomeName = msg.payload;
    var returnPayload = "";
 
@@ -174,7 +174,6 @@ function initializeIGV(self, genomeName)
    checkSignature(self, "initializeIGV")
 
     var hg19_options = {
-	//locus: "MEF2C",
      flanking: 1000,
      showRuler: true,
      minimumBases: 5,
@@ -215,29 +214,7 @@ function initializeIGV(self, genomeName)
      }; // hg38_options
 
 
-   var mm10_options_doesNotWork = {//locus: "5:88,621,548-88,999,827", //"22:40,000,000-40,200,000",
-         flanking: 2000,
-	 showKaryo: false,
-         showNavigation: true,
-         minimumBases: 5,
-         showRuler: true,
-         reference: {id: "mm10"
-                    // fastaURL: "http://trena.systemsbiology.net/mm10/GRCm38.primary_assembly.genome.fa",
-                    // cytobandURL: "http://trena.systemsbiology.net/mm10/cytoBand.txt"
-                     },
-         tracks: [
-            {name: 'Gencode vM14',
-             url: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz",
-             indexURL: "http://trena.systemsbiology.net/mm10/gencode.vM14.basic.annotation.sorted.gtf.gz.tbi",
-             format: 'gtf',
-             visibilityWindow: 2000000,
-             displayMode: 'EXPANDED'
-             },
-            ]
-       }; // mm10_options_doesNotWork
-
-   /**********/
-   var mm10_options = {//locus: "5:88,621,548-88,999,827", //"22:40,000,000-40,200,000",
+   var mm10_options = {
          flanking: 2000,
 	 showKaryo: false,
          showNavigation: true,
@@ -261,9 +238,39 @@ function initializeIGV(self, genomeName)
              },
             ]
        }; // mm10_options
-     /********/
 
-
+   var tair10_options = {
+         flanking: 2000,
+	 showKaryo: false,
+         showNavigation: true,
+         minimumBases: 5,
+         showRuler: true,
+         reference: {id: "TAIR10",
+                fastaURL: "http://trena.systemsbiology.net/tair10/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa",
+                indexURL: "http://trena.systemsbiology.net/tair10/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.fai"
+                },
+         tracks: [
+           {name: 'Genes TAIR10',
+            type: 'annotation',
+            visibilityWindow: 500000,
+            url: "http://trena.systemsbiology.net/tair10/TAIR10_genes.sorted.chrLowered.gff3.gz",
+            color: "darkred",
+            indexed: true,
+            height: 200,
+            displayMode: "EXPANDED"
+            },
+           {name: 'bud DHS',
+             type: 'wig',
+             url: "http://trena.systemsbiology.net/tair10/frd3.bw",
+             height: 100
+             },
+           {name: 'leaf DHS',
+             type: 'wig',
+             url: "http://trena.systemsbiology.net/tair10/frd3-leaf.bw",
+             height: 100
+             },
+            ]
+          }; // tair10_options
 
    var igvOptions = null;
 
@@ -277,9 +284,12 @@ function initializeIGV(self, genomeName)
        case "mm10":
          igvOptions = mm10_options;
          break;
+       case "tair10":
+         igvOptions = tair10_options;
+         break;
          } // switch on genoneName
 
-    $("#igvDiv").children().remove()
+   $("#igvDiv").children().remove()
 
    console.log("--- trenaViz, igv:");
    console.log(igv)

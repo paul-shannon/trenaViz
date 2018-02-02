@@ -190,8 +190,10 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color, trackHeight=100) {
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromDataFrame");
+     stopifnot(displayMode %in% c("COLLAPSED", "SQUISHED", "EXPANDED"))
      temp.filename <- "tmp.bed"
-     printf("trenaViz.R about to write temporary bed file to %s", temp.filename);
+     if(!obj@quiet)
+        printf("trenaViz.R about to write temporary bed file to %s", temp.filename);
      write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
      payload <- list(name=trackName, bedFileName=temp.filename, displayMode=displayMode, color=color,
                      trackHeight=trackHeight)
@@ -208,6 +210,7 @@ setMethod('addBedGraphTrackFromDataFrame', 'trenaViz',
   function (obj, trackName, tbl.bed, displayMode="COLLAPSED", minValue=NA, maxValue=NA, color="lightgray", trackHeight=100) {
      if(!obj@quiet)
         printf("TrenaViz::addBedGraphTrackFromDataFrame, color: %s", color);
+     stopifnot(displayMode %in% c("COLLAPSED", "SQUISHED", "EXPANDED"))
      found.chromosome.column <- any(grepl("^chr", colnames(tbl.bed), ignore.case=TRUE))
      stopifnot(found.chromosome.column)
      required.colnames <- c("start", "end", "score")
@@ -248,6 +251,8 @@ setMethod('addBedTrackFromHostedFile', 'trenaViz',
   function (obj, trackName, uri, index.uri, displayMode="COLLAPSED", color) {
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromHostedFile");
+     stopifnot(displayMode %in% c("COLLAPSED", "SQUISHED", "EXPANDED"))
+
      payload <- list(name=trackName, uri=uri, indexUri=index.uri, displayMode=displayMode, color=color)
      send(obj, list(cmd="addBedTrackFromHostedFile", callback="handleResponse",
                     status="request", payload=payload))
