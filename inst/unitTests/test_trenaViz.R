@@ -556,7 +556,7 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
 
    trena <- Trena("hg38")
 
-   setGenome(tv, "hg38")
+   # setGenome(tv, "hg38")
    setBrowserWindowTitle(tv, "two models, two promoter spans")
 
    targetGene <- "MEF2C"

@@ -759,10 +759,15 @@ function initializeTrnCytoscape()
 function readNetworkFromFile(filename, targetCy)
 {
    var s = window.location.href + "?" + filename;
+   console.log("====== readNetworkFromFile");
+   console.log("                  filename: " + filename)
+   console.log("      window.location.href: " + window.location.href)
+   console.log("                    full s: " + s)
+
    fetch(s)
       .then(function(responseObj){
           console.log("fetch in action");
-          return responseObj.json();
+          return(responseObj.json());
           })
      .then(function(j){
          targetCy.json(j);
