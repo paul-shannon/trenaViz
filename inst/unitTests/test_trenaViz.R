@@ -223,7 +223,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_oneModel")
 
-   load(system.file(package="trenaViz", "extdata", "tcf7Model.RData"))
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.RD<ata"))
    colnames(tbl.model) <- gsub(".", "_", colnames(tbl.model), fixed=TRUE)
    models <- list(tcf7=list(regions=tbl.regRegions, model=tbl.model))
    targetGene <- "TCF7"
@@ -260,7 +260,7 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
 {
    printf("--- test_buildMultiModelGraph_oneModel_twoRandomScoresOnly")
 
-   load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.RData"))
 
    colnames(tbl.model) <- gsub(".", "_", colnames(tbl.model), fixed=TRUE)
 
@@ -317,7 +317,7 @@ test_buildMultiModelGraph_oneModel_allScores <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_oneModel_allScores")
 
-   load(system.file(package="trenaViz", "extdata", "tcf7Model.Rdata"))
+   load(system.file(package="trenaViz", "extdata", "tcf7Model.RData"))
 
    scores.to.keep <- colnames(tbl.model)[-1]
    columns.to.keep <- c("gene", scores.to.keep)
