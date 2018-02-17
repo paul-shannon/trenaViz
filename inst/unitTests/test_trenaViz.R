@@ -571,6 +571,11 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
       tbl.fp1 <- tbl.fp1[-unmapped,]
 
    solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
+   if("motifStart" %in% colnames(tbl.fp1))
+      colnames(tbl.fp1)[grep("motifStart", colnames(tbl.fp1))] <- "start"
+   if("motifEnd" %in% colnames(tbl.fp1))
+      colnames(tbl.fp1)[grep("motifEnd", colnames(tbl.fp1))] <- "end"
+
    tbl.geneModel.1 <- createGeneModel(trena, targetGene, solver.names, tbl.fp1,  mtx)
 
        #----------------------------------------------------------------------------------
@@ -591,8 +596,12 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
      addBedTrackFromDataFrame(tv, "brain fp2", tbl.bed, displayMode="EXPANDED", color="darkBlue")
      }
 
-
    tbl.fp2 <- associateTranscriptionFactors(MotifDb, tbl.fp2, source="MotifDb", expand.rows=TRUE)
+   if("motifStart" %in% colnames(tbl.fp2))
+      colnames(tbl.fp2)[grep("motifStart", colnames(tbl.fp2))] <- "start"
+   if("motifEnd" %in% colnames(tbl.fp2))
+      colnames(tbl.fp2)[grep("motifEnd", colnames(tbl.fp2))] <- "end"
+
 
    unmapped <- which(is.na(tbl.fp2$geneSymbol))
    if(length(unmapped) > 0)
