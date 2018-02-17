@@ -107,7 +107,7 @@ setMethod('setGraph', 'trenaViz',
         }
      g.json <- .graphToJSON(graph)
      if(!obj@quiet)printf("--- g.json conversion complete");
-     filename <- "g.json"
+     filename <- file.path(getwd(), "g.json")
      payload <- list(filename=filename, modelNames=modelNames)
      if(!obj@quiet){
         printf("--- about to write file 'g.json' with %d characters", nchar(g.json))
