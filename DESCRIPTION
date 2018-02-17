@@ -1,11 +1,11 @@
 Package: trenaViz
 Type: Package
 Title: trenaViz: network and genome track visualization for trena
-Version: 0.99.40
+Version: 0.99.41
 Date: 2018-02-17
 Author: Paul Shannon
 Maintainer: Paul Shannon <pshannon@systemsbiology.org>
-Depends: R (>= 3.4.0), BrowserViz (>= 1.9.15), Rcpp (>= 0.12.12), jsonlite (>= 1.5), httpuv(>= 1.3.5), graph (>= 1.54.0), GenomicRanges
+Depends: R (>= 3.4.0), BrowserViz (>= 2.0.1), Rcpp (>= 0.12.12), jsonlite (>= 1.5), httpuv(>= 1.3.5), graph (>= 1.54.0), GenomicRanges
 Imports: methods, BiocGenerics
 Suggests: RUnit, BiocStyle
 Description: A BrowserViz subclass, using the browser to interactively explore trena data

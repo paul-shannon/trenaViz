@@ -6,10 +6,13 @@ library(MotifDb)
 printf <- function(...) print(noquote(sprintf(...)))
 #------------------------------------------------------------------------------------------------------------------------
 PORT.RANGE <- 8000:8020
+
 if(!exists("tv")){
    tv <- trenaViz(PORT.RANGE, quiet=TRUE);
+   checkTrue(class(tv) == "trenaViz")
    setGenome(tv, "hg38")
    }
+
 #------------------------------------------------------------------------------------------------------------------------
 if(!exists("mtx")){
     load(system.file(package="trena", "extdata/ampAD.154genes.mef2cTFs.278samples.RData"))
@@ -22,15 +25,15 @@ if(!exists("mtx")){
 #------------------------------------------------------------------------------------------------------------------------
 runTests <- function(display=FALSE)
 {
-  test_constructor();
-  test_windowTitle()
   test_ping()
+  test_windowTitle()
 
-  test_IGV()
-  test_loadAndRemoveTracks()
-  test_igvLoadLoadBedFileLostLine()
+  test_igvShowGetGenomicLocation()
+  test_igvLoadAndRemoveTracks()
 
   test_graphToJSON()
+
+  test_geneModelLayout()
 
   test_buildMultiModelGraph_oneModel_twoRandomScoresOnly()
   test_buildMultiModelGraph_oneModel_allScores()
@@ -39,19 +42,11 @@ runTests <- function(display=FALSE)
 
   test_buildMultiModelGraph_twoModels_two_promoterSpans(display=TRUE)
 
+  Sys.sleep(10); # give human observer a chance to see this model
+
   test_buildMultiModelGraph_twoModels_nonOverlappingRegions(display=TRUE)
 
 } # runTests
-#------------------------------------------------------------------------------------------------------------------------
-test_constructor <- function()
-{
-   printf("--- test_constructor")
-   tv <- trenaViz(PORT.RANGE, quiet=TRUE);
-
-   checkTrue(ready(tv))
-   checkTrue(port(tv) %in% PORT.RANGE)
-
-} # test_constructor
 #------------------------------------------------------------------------------------------------------------------------
 test_windowTitle <- function()
 {
@@ -72,19 +67,20 @@ test_ping <- function()
 
 } # test_ping
 #------------------------------------------------------------------------------------------------------------------------
-test_IGV <- function()
+test_igvShowGetGenomicLocation <- function()
 {
-   printf("--- test_IGV")
-   setGenome(tv, "hg38")
-   Sys.sleep(5);
+   printf("--- test_igvShowGetGenomicLocation")
+
    showGenomicRegion(tv, "AQP4")
    Sys.sleep(5);
    chromLocString <- getGenomicRegion(tv)
+
    checkTrue(grepl("chr18:", chromLocString));
 
-} # test_IGV
+} # test_igvShowGetGenomicLocation
 #------------------------------------------------------------------------------------------------------------------------
-test_igvLoadLoadBedFileLostLine <- function()
+# fixed in igv.js in autumn 2017.  code kept here just in case
+skip_test_igvLoadLoadBedFileLostLine <- function()
 {
    printf("--- test_igvLoadLoadBedFileLostLine")
    setGenome(tv, "hg38")
@@ -179,9 +175,9 @@ no_testGraph <- function()
 
 } # no_testGraph
 #------------------------------------------------------------------------------------------------------------------------
-test_loadAndRemoveTracks <- function()
+test_igvLoadAndRemoveTracks <- function()
 {
-   printf("--- test_loadAndRemoveTracks")
+   printf("--- test_igvLoadAndRemoveTracks")
 
    raiseTab(tv, "IGV")
 
@@ -221,7 +217,7 @@ test_loadAndRemoveTracks <- function()
 
    checkEquals(sort(getTrackNames(tv)), c("Gencode v24", "tbl.bedGraph2"))
 
-} # test_loadAndRemoveTracks
+} # test_igvLoadAndRemoveTracks
 #------------------------------------------------------------------------------------------------------------------------
 test_buildMultiModelGraph_oneModel <- function(display=FALSE)
 {
@@ -251,7 +247,7 @@ test_buildMultiModelGraph_oneModel <- function(display=FALSE)
    if(display){
      browser()
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -308,7 +304,7 @@ test_buildMultiModelGraph_oneModel_twoRandomScoresOnly <- function(display=FALSE
    if(display){
      browser()
      setGraph(tv, g.lo, names(models))
-     setStyle(system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -363,7 +359,7 @@ test_buildMultiModelGraph_oneModel_allScores <- function(display=FALSE)
    if(display){
      browser()
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -450,8 +446,7 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
    if(display){
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, "style.js")
-     #setStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     setStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      xyz <- 99
@@ -459,16 +454,45 @@ test_buildMultiModelGraph_twoModels <- function(display=FALSE)
 
 } # test_buildMultiModelGraph_twoModels
 #------------------------------------------------------------------------------------------------------------------------
-test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
+# may be revived in the future (pshannon, 17feb2018)
+obsoleteTest_buildMultiModelGraph_fiveModels <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_fiveModels")
-   targetGene <- "AQP4"
-   aqp4.tss <- 26865884
-   fp.source <- "postgres://whovian/brain_hint_20"
-   sources <- list(fp.source)
 
    trena <- Trena("hg38")
-   tbl.geneModel <- createGeneModel(trena, targetGene, solver.names, tbl.motifs.tfs, mtx)
+
+   targetGene <- "AQP4"
+   chromosome <- "chr18"
+   targetGene.tss <- 26865884
+   loc.start <- targetGene.tss - 200
+   loc.end   <- targetGene.tss + 2000
+
+   fp.source <- "postgres://bddsrds.globusgenomics.org/brain_hint_20"
+   sources <- list(fp.source)
+
+   x <- getRegulatoryChromosomalRegions(trena, chromosome, loc.start, loc.end, sources,
+                                        targetGene, targetGene.tss)
+   names(x) <- sources
+   tbl.fp1 <- x[[1]]
+
+   if(display){
+     tbl.bed <- unique(tbl.fp1[, 1:3])
+     addBedTrackFromDataFrame(tv, "brain fp1", tbl.bed, displayMode="EXPANDED", color="darkRed")
+     }
+
+   tbl.fp1 <- associateTranscriptionFactors(MotifDb, tbl.fp1, source="MotifDb", expand.rows=TRUE)
+
+   unmapped <- which(is.na(tbl.fp1$geneSymbol))
+   if(length(unmapped) > 0)
+      tbl.fp1 <- tbl.fp1[-unmapped,]
+
+   solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
+   if("motifStart" %in% colnames(tbl.fp1))
+      colnames(tbl.fp1)[grep("motifStart", colnames(tbl.fp1))] <- "start"
+   if("motifEnd" %in% colnames(tbl.fp1))
+      colnames(tbl.fp1)[grep("motifEnd", colnames(tbl.fp1))] <- "end"
+
+   tbl.geneModel <- createGeneModel(trena, targetGene, solver.names, tbl.fp1, mtx)
 
    prep <- TrenaPrep(targetGene, aqp4.tss, "chr18", aqp4.tss-1000, aqp4.tss+1000, regulatoryRegionSources=sources)
    x <- getRegulatoryRegions(prep)
@@ -519,7 +543,7 @@ test_buildMultiModelGraph_fiveModels <- function(display=FALSE)
 
    if(display){
      httpAddGraph(tv, g.lo, names(models))
-     loadStyle(tv, system.file(package="trenaUtilities", "extdata", "style.js"))
+     loadStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      browser()
      }
@@ -530,20 +554,22 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
 {
    printf("--- test_buildMultiModelGraph_twoModels_two_promotersSpans")
 
-   #tv <- trenaViz(PORT.RANGE)
+   trena <- Trena("hg38")
+
    setGenome(tv, "hg38")
+   setBrowserWindowTitle(tv, "two models, two promoter spans")
+
    targetGene <- "MEF2C"
+   chromosome <- "chr5"
+   targetGene.tss <- 88904257
 
    raiseTab(tv, "IGV")
    showGenomicRegion(tv, targetGene)
-   targetGene.tss <- 88904257
-   chromosome <- "chr5"
 
    database.filename <- system.file(package="trena", "extdata", "mef2c.neigborhood.hg38.footprints.db")
    database.uri <- sprintf("sqlite://%s", database.filename)
    sources <- list(sqlite=database.uri)
 
-   trena <- Trena("hg38")
 
        #----------------------------------------------------------------------------------
        # create one gene model with a traditional, conservative promoter
@@ -645,7 +671,7 @@ test_buildMultiModelGraph_twoModels_two_promoterSpans <- function(display=FALSE)
 
    if(display){
      setGraph(tv, g.lo, names(models))
-     setStyle(tv, "style.js")
+     setStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      }
 
@@ -682,6 +708,8 @@ test_buildMultiModelGraph_twoModels_nonOverlappingRegions <- function(display)
    printf("--- test_buildMultiModelGraph_twoModels_nonOverlappingRegions")
 
    print(load(system.file(package="trenaViz", "extdata", "disjointModelAndRegulatoryRegions.RData")))
+   setBrowserWindowTitle(tv, "two models, non-overlapping regulatory regions")
+
    targetGene <- "COL1A1"
 
    modelList <- list(left=list(model=tbl.modelLeft,   regions=tbl.fpLeft),
@@ -719,7 +747,7 @@ test_buildMultiModelGraph_twoModels_nonOverlappingRegions <- function(display)
 
    if(display){
      setGraph(tv, g.lo, names(modelList))
-     setStyle(tv, "style.js")
+     setStyle(tv, system.file(package="trenaViz", "extdata", "style.js"))
      Sys.sleep(3); fit(tv)
      }
 

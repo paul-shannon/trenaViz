@@ -110,7 +110,7 @@ buildMultiModelGraph <- function (targetGene, models)
        all.regulatoryRegions <- unique(c(all.regulatoryRegions, tbl.reg$id))
        } # for model
 
-    printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(all.regulatoryRegions))
+    # printf("total tfs: %d   total regulatoryRegions: %d", length(tfs), length(all.regulatoryRegions))
 
     all.nodes <- unique(c(targetGene, tfs, all.regulatoryRegions))
     g <- addNode(all.nodes, g)
