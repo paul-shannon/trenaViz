@@ -764,6 +764,7 @@ function readNetworkFromFile(filename, targetCy)
    console.log("      window.location.href: " + window.location.href)
    console.log("                    full s: " + s)
 
+   /***********
    fetch(s)
       .then(function(responseObj){
           console.log("fetch in action");
@@ -773,6 +774,21 @@ function readNetworkFromFile(filename, targetCy)
          targetCy.json(j);
          return "success";
          });
+   **********/
+
+  console.log("=== about to getScript on " + s)
+   $.getScript(s)
+     .done(function(script, textStatus) {
+        console.log(textStatus);
+        targetCy.add(network.elements);
+        console.log("after getting script, cy.add");
+       })
+    .fail(function( jqxhr, settings, exception ) {
+       console.log("getScript error trying to read " + filename);
+       console.log("exception: ");
+       console.log(exception);
+       });
+
 
     return "SUCCESS";
 
