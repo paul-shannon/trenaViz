@@ -100,11 +100,16 @@ function initializeUI()
 //----------------------------------------------------------------------------------------------------
 function handleWindowResize ()
 {
-   console.log("trenaviz, handleWindowResize");
-   console.log("jquery version: " + $().jquery)
+   //console.log("trenaviz, handleWindowResize");
+   //console.log("jquery version: " + $().jquery)
+
    var tabsDiv = $("#trenaVizDiv");
+
+     // i have no grasp of why document is needed to track height, window for width.
+     // pshannon (18 feb 2018) jquery 3.3.1
+
    var browserWindowHeight = $(document).innerHeight();
-   var browserWindowWidth  = $(document).innerWidth();
+   var browserWindowWidth  = $(window).innerWidth();
    tabsDiv.width(0.98  * browserWindowWidth);
    tabsDiv.height(0.92 * browserWindowHeight);
    $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());

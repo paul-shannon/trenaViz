@@ -111129,7 +111129,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, "#trenaVizDiv {\n  height: 80px;\n  width: 100%;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n  }\n\n#cyOuterDiv{\n  margin: 2px;\n  padding: 0px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n\n  }\n\n#cyMenubarDiv{\n  margin: 2px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n  }\n\n#cyDiv{\n  background-color: #F8F8F8;\n  margin: 2px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n  }\n\n.cyMenuButton{\n  margin-left: 6px;\n  margin-bottom: 6px;\n  margin-top: 8px;\n  background-color: #E8E8E8;\n  }\n\n#igvOuterDiv{\n   margin: 10px;\n   border-style: solid;\n   border-width: 1px;\n   border-color: #AAA;\n   border-radius: 5px;\n   overflow-x: scroll;\n   overflow-y: scroll;\n   height: 80%;\n   }\n\n#igvDiv{\n  padding-top: 10px;\n  padding-bottom: 10px;\n  }\n\n\n", ""]);
+exports.push([module.i, "#trenaVizDiv {\n   height: 80px;\n   width: 100%;\n   border: 1px solid #aaa;\n   border-radius: 5px;\n   overflow-x: scroll;\n   overflow-y: scroll;\n  }\n\n#cyOuterDiv{\n  margin: 2px;\n  padding: 0px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n\n  }\n\n#cyMenubarDiv{\n  margin: 2px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n  }\n\n#cyDiv{\n  background-color: #F8F8F8;\n  margin: 2px;\n  border: 1px solid #aaa;\n  border-radius: 5px;\n  }\n\n.cyMenuButton{\n  margin-left: 6px;\n  margin-bottom: 6px;\n  margin-top: 8px;\n  background-color: #E8E8E8;\n  }\n\n#igvOuterDiv{\n   margin: 10px;\n   border-style: solid;\n   border-width: 1px;\n   border-color: #AAA;\n   border-radius: 5px;\n   overflow-x: scroll;\n   overflow-y: scroll;\n   height: 80%;\n   }\n\n#igvDiv{\n  padding-top: 10px;\n  padding-bottom: 10px;\n  height: 2000px;\n  }\n\n\n", ""]);
 
 // exports
 
@@ -112519,30 +112519,21 @@ function initializeUI()
 //----------------------------------------------------------------------------------------------------
 function handleWindowResize ()
 {
-   console.log("trenaviz, handleWindowResize");
-   console.log("jquery version: " + $().jquery)
-   //debugger;
+   //console.log("trenaviz, handleWindowResize");
+   //console.log("jquery version: " + $().jquery)
+
    var tabsDiv = $("#trenaVizDiv");
-    console.log(1);
+
+     // i have no grasp of why document is needed to track height, window for width.
+     // pshannon (18 feb 2018) jquery 3.3.1
+
    var browserWindowHeight = $(document).innerHeight();
-    console.log(2);
-   var browserWindowWidth  = $(document).innerWidth();
-    console.log(3);
-
+   var browserWindowWidth  = $(window).innerWidth();
    tabsDiv.width(0.98  * browserWindowWidth);
-    console.log(4);
    tabsDiv.height(0.92 * browserWindowHeight);
-   //tabsDiv.width(0.98  * $(window).width());
-   //tabsDiv.height(0.92 * $(window).height());
-
-    console.log(5);
    $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());
-    console.log(6);
    $("#cyDiv").height(tabsDiv.height() - 3 * $("#cyMenubarDiv").height()); //tabsDiv.height()-100);
-    console.log(7);
-
    $("#igvOuterDiv").height($("#trenaVizDiv").height() - (3 * $(".ui-tabs-nav").height()))
-    console.log(8);
 
 } // handleWindowResize
 //--------------------------------------------------------------------------------
