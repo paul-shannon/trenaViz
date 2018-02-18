@@ -3,6 +3,8 @@ var cytoscape = require('cytoscape');
 import css from './css/trenaviz.css';
 var igv = require('igv.js.npm')
 require('igv.js.npm/igv.css')
+$ = require('jquery');
+require('jquery-ui-bundle');
 //var igv = require('igv')
 //require('igv/igv.css')
 //----------------------------------------------------------------------------------------------------
@@ -98,14 +100,15 @@ function initializeUI()
 //----------------------------------------------------------------------------------------------------
 function handleWindowResize ()
 {
+   console.log("trenaviz, handleWindowResize");
+   console.log("jquery version: " + $().jquery)
    var tabsDiv = $("#trenaVizDiv");
-
-   tabsDiv.width(0.98  * $(window).width());
-   tabsDiv.height(0.92 * $(window).height());
-
+   var browserWindowHeight = $(document).innerHeight();
+   var browserWindowWidth  = $(document).innerWidth();
+   tabsDiv.width(0.98  * browserWindowWidth);
+   tabsDiv.height(0.92 * browserWindowHeight);
    $("#cyDiv").width($("#cyMenubarDiv").width()) // Width0.92 * tabsDiv.width());
    $("#cyDiv").height(tabsDiv.height() - 3 * $("#cyMenubarDiv").height()); //tabsDiv.height()-100);
-
    $("#igvOuterDiv").height($("#trenaVizDiv").height() - (3 * $(".ui-tabs-nav").height()))
 
 } // handleWindowResize
@@ -732,8 +735,8 @@ function setStyle(msg)
 function initializeTrnCytoscape()
 {
   var options = {container: $("#cyDiv"),
-                 elements: {nodes: [{data: {id:'a'}}],
-                            edges: [{data:{source:'a', target:'a'}}]},
+                 //elements: {nodes: [{data: {id:'a'}}],
+                 //           edges: [{data:{source:'a', target:'a'}}]},
                  style: cytoscape.stylesheet()
                  .selector('node').style({'background-color': '#ddd',
                                           'label': 'data(id)',
