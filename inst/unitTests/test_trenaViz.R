@@ -183,6 +183,7 @@ test_igvLoadAndRemoveTracks <- function()
 
    setBrowserWindowTitle(tv, "test load tracks")
    removeTracksByName(tv, getTrackNames(tv)[-1])
+   Sys.sleep(1)
    checkEquals(getTrackNames(tv), "Gencode v24")
 
    segments <- 5
@@ -204,9 +205,11 @@ test_igvLoadAndRemoveTracks <- function()
                                  minValue=min(tbl.bedGraph$score), maxValue=max(tbl.bedGraph$score),
                                  displayMode="EXPANDED")
 
+   Sys.sleep(2)  # allow add track a bit of time to complete
    checkEquals(sort(getTrackNames(tv)), c("Gencode v24",  "tbl.bed.sorted", "tbl.bedGraph"))
    Sys.sleep(3)
    removeTracksByName(tv, c("tbl.bed.sorted", "tbl.bedGraph"))
+   Sys.sleep(2)
    checkEquals(getTrackNames(tv), "Gencode v24")
 
    tbl.bedGraph2 <- tbl.bedGraph
@@ -214,7 +217,7 @@ test_igvLoadAndRemoveTracks <- function()
    addBedGraphTrackFromDataFrame(tv, "tbl.bedGraph2", tbl.bedGraph2, color="purple",
                                  minValue=min(tbl.bedGraph2$score), maxValue=max(tbl.bedGraph2$score),
                                  displayMode="EXPANDED")
-
+   Sys.sleep(2)
    checkEquals(sort(getTrackNames(tv)), c("Gencode v24", "tbl.bedGraph2"))
 
 } # test_igvLoadAndRemoveTracks

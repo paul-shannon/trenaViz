@@ -1,6 +1,6 @@
 {
   "name": "trenaViz",
-  "version": "0.99.49",
+  "version": "0.99.50",
   "description": "html, js, css and libraries for R package, trenaViz",
   "main": "trenaviz.js",
   "scripts": {
