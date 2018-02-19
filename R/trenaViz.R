@@ -22,7 +22,7 @@ setGeneric('getTrackNames',        signature='obj', function(obj) standardGeneri
 setGeneric('removeTracksByName',   signature='obj', function(obj, trackNames) standardGeneric('removeTracksByName'))
 
 setGeneric('addBedTrackFromDataFrame',  signature='obj',
-                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray", trackHeight=200)
+                       function(obj, trackName, tbl.bed, displayMode="COLLAPSED", color="lightgray", trackHeight=30)
                    standardGeneric('addBedTrackFromDataFrame'))
 setGeneric('addBedTrackFromHostedFile',   signature='obj',
                       function(obj, trackName, uri, index.uri=NA, displayMode="COLLAPSED", color="lightgray")
@@ -189,11 +189,13 @@ setMethod('removeTracksByName', 'trenaViz',
 #----------------------------------------------------------------------------------------------------
 setMethod('addBedTrackFromDataFrame', 'trenaViz',
 
-  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color, trackHeight=100) {
+  function (obj, trackName, tbl.bed, displayMode="COLLAPSED", color, trackHeight=30) {
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromDataFrame");
      stopifnot(displayMode %in% c("COLLAPSED", "SQUISHED", "EXPANDED"))
      temp.filename <- "tmp.bed"
+     if(ncol(tbl.bed) > 8)
+        tbl.bed <- tbl.bed[, 1:8]
      if(!obj@quiet)
         printf("trenaViz.R about to write temporary bed file to %s", temp.filename);
      write.table(tbl.bed, sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE, file=temp.filename)
