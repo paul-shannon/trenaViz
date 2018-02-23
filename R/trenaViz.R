@@ -193,7 +193,7 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
      if(!obj@quiet)
         printf("TrenaViz::addBedTrackFromDataFrame");
      stopifnot(displayMode %in% c("COLLAPSED", "SQUISHED", "EXPANDED"))
-     temp.filename <- "tmp.bed"
+     temp.filename <- sprintf("tmp%d.bed", as.integer(Sys.time()))
      if(ncol(tbl.bed) > 8)
         tbl.bed <- tbl.bed[, 1:8]
      if(!obj@quiet)
@@ -205,6 +205,7 @@ setMethod('addBedTrackFromDataFrame', 'trenaViz',
      while (!browserResponseReady(obj)){
         Sys.sleep(.1)
         }
+     # consider unlinking (removing) temp.filename here
      getBrowserResponse(obj);
      })
 

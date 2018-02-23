@@ -386,9 +386,6 @@ function addBedTrackFromDataFrame(msg)
    var self = this;
    checkSignature(self, "addBedTrackFromDataFrame")
 
-   //console.log("=== addBedTrackFromDataFrame");
-   //console.log(JSON.stringify(msg));
-
    var trackName = msg.payload.name;
    var bedFileName = msg.payload.bedFileName;
    var displayMode = msg.payload.displayMode;
